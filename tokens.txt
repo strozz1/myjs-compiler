@@ -1,0 +1,29 @@
+TK_IF = "if"
+TK_ELSE = "else"
+TK_FUNCTION = "function"
+TK_VAR = "var"
+TK_RETURN = "return"
+
+TK_ID = "([a-z]||[A-Z])([a-z]||[A-Z]||[0-9]||_)+" // ver como acepta el generador
+TK_STRING_LITERAL = " \"(^"\\||\\.)\" "
+TK_INT_LITERAL = "[1-9][0-9]*"
+//TK_REAL_T_LITERAL = "(0||[1-9]+).[0-9]+"
+
+TK_ASIG = "="
+TK_SEMICOL = ";"
+
+TK_OPPAR = "("
+TK_CLPAR = ")"
+TK_OPBRA = "{"
+TK_CLBRA = "}"
+
+TK_SUM = "+"
+TK_MIN = "-"
+
+
+TK_EQ = "=="
+TK_LEQ = "<="
+TK_GEQ = ">="
+
+
+TK_EOF
