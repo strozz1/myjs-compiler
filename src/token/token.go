@@ -18,16 +18,18 @@ const (
 type Token struct {
 	Kind   TokenKind
 	Lexeme string
+	Attr string
 }
 
-func NewToken(kind TokenKind, lexeme string) Token {
-	return Token{kind, lexeme}
+func NewToken(kind TokenKind, lexeme string,attr string) Token {
+	return Token{kind, lexeme,attr}
 }
 
 type TokenManager struct {
 	tokens []Token
 	writer *bufio.Writer
 	tokenPos int
+	token string
 }
 
 func (s *TokenManager) NextToken() (Token,bool){
@@ -58,7 +60,7 @@ func (m *TokenManager) AddToken(tk Token) {
 
 func (m *TokenManager) Write(){
 	for _,tk:=range m.tokens{
-		fmt.Fprintf(m.writer,"<%v, %v>\n",tk.Kind,"-")
+		fmt.Fprintf(m.writer,"<%v, %v>\n",tk.Kind,tk.Attr)
 	}
 	m.writer.Flush()
 }

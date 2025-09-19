@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"slices"
 	"bufio"
 	"compiler-pdl/src/diagnostic"
 	"compiler-pdl/src/st"
@@ -15,6 +16,8 @@ var DEBUG bool
 type Scanner struct {
 	//current char red
 	current rune
+	//token
+	token string
 	//buffer reader
 	reader *bufio.Reader
 	//transition table
@@ -25,6 +28,10 @@ type Scanner struct {
 	st *st.STManager
 	//Error Manager
 	errManager *diagnostic.ErrorManager
+}
+
+func (s *Scanner) IsReserved(token string) bool {
+	return slices.Contains(s.st.ReservedWords, token)
 }
 
 func (s *Scanner) Write() {
@@ -66,19 +73,16 @@ func NewScanner(r *bufio.Reader, st *st.STManager, diagnostic *diagnostic.ErrorM
 
 func (s *Scanner) Next(next *rune) {
 	char, _, err := s.reader.ReadRune()
-	if DEBUG{
-		fmt.Printf("DEBUG: Char red: %d\n",char)
-	}
-	*next=char
+	*next = char
 	if err != nil {
-		if err==io.EOF{
-			if DEBUG{
+		if err == io.EOF {
+			if DEBUG {
 				fmt.Println("DEBUG: EOF found. Finished reading input file")
 			}
 			return
 		}
 		if DEBUG {
-			fmt.Fprintf(os.Stderr, "Error reading input: %v\n",err)
+			fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
 		}
 		return
 	}
@@ -86,15 +90,13 @@ func (s *Scanner) Next(next *rune) {
 
 // The algorithm of the actual scanner
 func (s *Scanner) Scan() {
-	for s.current!=0 {
-		fmt.Printf("NOSE@: %d\n",s.current)
+	for s.current != 0 {
 		e, err := s.transitions.Find(s.current)
 		if err != nil {
 			s.errManager.NewError(diagnostic.LEXICAL, err.Error())
 			return //TODO
 		}
-		e.action(s.current,&s.current)
-
+		e.action(s.current, &s.current)
 	}
 }
 
