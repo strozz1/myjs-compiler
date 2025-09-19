@@ -4,7 +4,8 @@ import "fmt"
 
 type ErrorKind int
 const(
-	ID_TOO_LONG ErrorKind = iota
+	SINTACTICAL ErrorKind = iota
+	LEXICAL
 )
 
 type Error struct{
@@ -19,17 +20,18 @@ func NewError(kind ErrorKind,line int,info string)Error{
 }
 
 func (e *Error) ToString()string{
-	return fmt.Sprintf("ERROR en linea %v: %v",e.line,e.kind.string(e.info))
+	return fmt.Sprintf("ERROR %v en linea %v: %v",e.kind.string(),e.line,e.info)
 }
 
-func (k ErrorKind) string(info string)string{
+func (k ErrorKind) string()string{
 	var str string
 	switch k{
-	case ID_TOO_LONG:
-		str=fmt.Sprintf("el identificador '%v' supera el limite de 128 caracteres",info)
+	case LEXICAL:
+		str="LEXICO"
+	case SINTACTICAL:
+		str="SINTACTICO"
 	default:
-		str="internal error"
-
+		str="DESCONOCIDO"
 	}
 	return str
 }

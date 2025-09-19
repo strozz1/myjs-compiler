@@ -6,6 +6,8 @@ import (
 	"compiler-pdl/src/st"
 	"compiler-pdl/src/token"
 	"fmt"
+	"io"
+	"os"
 )
 
 var DEBUG bool
@@ -17,14 +19,24 @@ type Scanner struct {
 	reader *bufio.Reader
 	//transition table
 	transitions TransitionTable
-	//token list
-	tokens []token.Token
-	// Token list position
-	tokenPos int
+	//token manager
+	tkManager *token.TokenManager
 	//SymbolTable manager
 	st *st.STManager
 	//Error Manager
 	errManager *diagnostic.ErrorManager
+}
+
+func (s *Scanner) Write() {
+	s.tkManager.Write()
+}
+
+func (s *Scanner) AddToken(token token.Token) {
+	s.tkManager.AddToken(token)
+}
+
+func (s *Scanner) NewLine() {
+	s.errManager.NewLine()
 }
 
 // Creates a new scanner for the reader provided.
@@ -33,8 +45,7 @@ type Scanner struct {
 //
 // The Scanner will be initialized and the first char will be red and
 // saved in current
-func NewScanner(r *bufio.Reader, st *st.STManager, diagnostic *diagnostic.ErrorManager) (Scanner, error) {
-
+func NewScanner(r *bufio.Reader, st *st.STManager, diagnostic *diagnostic.ErrorManager, tkManager *token.TokenManager) (Scanner, error) {
 	char, _, err := r.ReadRune()
 	if err != nil {
 		return Scanner{}, err
@@ -42,25 +53,47 @@ func NewScanner(r *bufio.Reader, st *st.STManager, diagnostic *diagnostic.ErrorM
 	if DEBUG {
 		fmt.Println("DEBUG: Initializing Lexer")
 	}
-	return Scanner{
+	sc := Scanner{
 		current:    char,
 		reader:     r,
-		tokens:     []token.Token{},
-		tokenPos:   0,
+		tkManager:  tkManager,
 		st:         st,
 		errManager: diagnostic,
-		transitions: GenerateTransitions(),
-	}, nil
+	}
+	sc.transitions = GenerateTransitions(&sc)
+	return sc, nil
 }
 
-// Returns true if next input exists.
-func (s *Scanner) hasNext() bool {
-	return s.current != 0
+func (s *Scanner) Next(next *rune) {
+	char, _, err := s.reader.ReadRune()
+	if DEBUG{
+		fmt.Printf("DEBUG: Char red: %d\n",char)
+	}
+	*next=char
+	if err != nil {
+		if err==io.EOF{
+			if DEBUG{
+				fmt.Println("DEBUG: EOF found. Finished reading input file")
+			}
+			return
+		}
+		if DEBUG {
+			fmt.Fprintf(os.Stderr, "Error reading input: %v\n",err)
+		}
+		return
+	}
 }
 
 // The algorithm of the actual scanner
 func (s *Scanner) Scan() {
-	for s.hasNext() {
+	for s.current!=0 {
+		fmt.Printf("NOSE@: %d\n",s.current)
+		e, err := s.transitions.Find(s.current)
+		if err != nil {
+			s.errManager.NewError(diagnostic.LEXICAL, err.Error())
+			return //TODO
+		}
+		e.action(s.current,&s.current)
 
 	}
 }
@@ -68,9 +101,5 @@ func (s *Scanner) Scan() {
 // Returns the last token generated. If token found also returns true.
 // Internally, it checks s.tokenPos(last token gotten) and if new tokens returns it.
 func (s *Scanner) Token() (token.Token, bool) {
-	if len(s.tokens) == 0 || s.tokenPos >= len(s.tokens) {
-		return token.Token{}, false
-	}
-	s.tokenPos++
-	return s.tokens[s.tokenPos-1], true
+	return s.tkManager.NextToken()
 }
