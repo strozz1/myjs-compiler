@@ -1,0 +1,22 @@
+(* Groups *)
+digit = [0-9]
+l = [a-z] || [A-Z]
+c = any char
+del = ' ' || '\t' || '\r'
+EOL = '\n'
+
+(* Tokens *)
+ID = l(digit || l|| '_')* limit 128
+ASIG = :=
+
+STRING_LITERAL = " any char " limit 128
+INT_LITERAL = digit+ limit 2^32-1
+
+
+(* Grammar *)
+->S
+S -> :X | lA | "S | dD | { | } | ( | ) | =
+X -> =
+A -> dA | lA | _A | lambda
+S -> cS | " 
+D -> dD | lambda

@@ -47,8 +47,8 @@ func main(){
 	}
 	lexer.Scan()
 	
-	errManager.Write()
 	lexer.Write()
+	errManager.Write()
 }
 
 func debug() {

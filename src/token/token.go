@@ -25,6 +25,8 @@ func NewToken(kind TokenKind, lexeme string,attr string) Token {
 	return Token{kind, lexeme,attr}
 }
 
+//Manage the existing tokens. This manager does NOT create new tokens or detects them.
+// The purpose of this manager is to 
 type TokenManager struct {
 	tokens []Token
 	writer *bufio.Writer
@@ -32,13 +34,6 @@ type TokenManager struct {
 	token string
 }
 
-func (s *TokenManager) NextToken() (Token,bool){
-	if len(s.tokens) == 0 || s.tokenPos >= len(s.tokens) {
-		return Token{}, false
-	}
-	s.tokenPos++
-	return s.tokens[s.tokenPos-1], true
-}
 
 func NewTokenManager(writer *bufio.Writer) *TokenManager {
 	if DEBUG{
@@ -50,8 +45,17 @@ func NewTokenManager(writer *bufio.Writer) *TokenManager {
 	}
 }
 
-func (m *TokenManager) AddToken(tk Token) {
-
+//Returns Token if there is a new one. This does not remove the token from the actual list
+//Used to know what Token is next in the reading queue.
+func (s *TokenManager) PopToken() (Token,bool){
+	if len(s.tokens) == 0 || s.tokenPos >= len(s.tokens) {
+		return Token{}, false
+	}
+	s.tokenPos++
+	return s.tokens[s.tokenPos-1], true
+}
+//Push a new token
+func (m *TokenManager) PushToken(tk Token) {
 	m.tokens = append(m.tokens, tk)
 	if DEBUG{
 		fmt.Printf("DEBUG: Token added: <%v, %v>\n",tk.Kind,tk.Lexeme)

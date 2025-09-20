@@ -1,11 +1,13 @@
 package lexer
 
 import (
+	"compiler-pdl/src/diagnostic"
 	"compiler-pdl/src/token"
 	"errors"
 	"fmt"
+	"math"
 )
-
+const MAX_STRING=128
 type State int
 type Action func(rune, *rune)
 type Match func(r rune) bool
@@ -25,29 +27,33 @@ func (t *TransEntry) Action(a rune, b *rune) {
 
 // Reprensents the transition table from the DFA
 type TransitionTable struct {
-	table   map[State]map[rune]*TransEntry
-	initial State
-	finals  []State
-	current State
+	table        map[State]map[rune]*TransEntry
+	start        State
+	finals       []State
+	currentState State
 }
 
-func (t *TransitionTable) addTransition(char rune, currentState State, nextState State, action Action, match Match) {
+var transId rune = -1
+
+// Creates a new transition from currentState to nextState.
+// It can transition either using 1 char or via a Match. If match is NOT nil, the char will be ignored.
+// Internally, if a match is present, the table stores the transition with a negative char(that autodecrements)
+func (t *TransitionTable) addTransition(currentState State, nextState State, char rune, match Match, action Action) {
 	trans, ok := t.table[currentState]
 	if !ok {
 		t.table[currentState] = map[rune]*TransEntry{}
 		trans = t.table[currentState]
 	}
 
-	for r, i := range trans {
-		//if a match set r
-		if i.match != nil && i.match(char) {
-			char = r
-		}
+	if match != nil {
+		char = transId
+		transId--
 	}
 	_, ok = trans[char]
+
 	if ok {
 		if DEBUG {
-			fmt.Printf("WARNING: Overwritting transition on ['S%v', %v]\n", currentState, char)
+			fmt.Printf("WARNING: Overwritting transition on ['S%v', %v]=S%d\n", currentState, char, nextState)
 		}
 	}
 	trans[char] = &TransEntry{next: nextState, action: action, match: match}
@@ -57,72 +63,156 @@ func (t *TransitionTable) addTransition(char rune, currentState State, nextState
 }
 
 func (t *TransitionTable) Find(char rune) (*TransEntry, error) {
-	tr, ok := t.table[t.current]
+	tr, ok := t.table[t.currentState]
 	if !ok {
 		return &TransEntry{}, errors.New("State not found")
 	}
 	for r, i := range tr {
 		//if a match set r
 		if i.match != nil && i.match(char) {
-
 			char = r
+			break
 		}
 	}
 	entry, ok := tr[char]
 	if !ok {
-		return entry, errors.New("Invalid char state")
+		return entry, fmt.Errorf("Caracter no valido '%c'",char)
 	}
-	t.current = entry.next
+	t.currentState = entry.next
 	return entry, nil
 }
 
+// Generates de transitions of the DFA for the lexer.
 func GenerateTransitions(sc *Scanner) TransitionTable {
 	t := TransitionTable{
-		table:  map[State]map[rune]*TransEntry{},
-		finals: []State{},
+		table:        map[State]map[rune]*TransEntry{},
+		finals:       []State{},
+		start:        0,
+		currentState: 0,
 	}
+	const (
+		S0 State = iota
+		S1
+		S2
+		S3
+		S4
+	)
 
-	t.addTransition(' ', 0, 0, func(a rune, b *rune) {
-		sc.Next(b)
-	}, nil)
-	t.addTransition('\n', 0, 0, func(a rune, b *rune) {
-		sc.NewLine()
-		sc.Next(b)
-	}, nil)
-	t.addTransition('\r', 0, 0, func(a rune, b *rune) {
-		sc.Next(b)
-	}, nil)
-	t.addTransition(-2, 0, 1, func(a rune, b *rune) {
-		sc.token = string(append([]rune(sc.token), a))
-		sc.Next(b)
-	}, matchID)
+	//delimiters
+	t.addTransition(S0, S0, 0, matchDel, func(a rune, b *rune) {
+		sc.nextChar(b)
+	})
 
-	t.addTransition(-3, 1, 1, func(a rune, b *rune) {
+	//new line
+	t.addTransition(S0, S0, '\n', nil, func(a rune, b *rune) {
+		sc.newLine()
+		sc.nextChar(b)
+	})
+	//Carriage
+	t.addTransition(S0, S0, '\r', nil, func(a rune, b *rune) {
+		sc.nextChar(b)
+	})
+
+	// Start of ID
+	t.addTransition(S0, S1, 0, matchIdFirst, func(a rune, b *rune) {
 		sc.token = string(append([]rune(sc.token), a))
-		sc.Next(b)
-	}, matchID)
-	t.addTransition(-4, 1, 0, func(a rune, b *rune) {
-		var tk token.Token
+		sc.nextChar(b)
+	})
+
+	// Cont of ID
+	t.addTransition(S1, S1, 0, matchId, func(a rune, b *rune) {
+		sc.token = string(append([]rune(sc.token), a))
+		sc.nextChar(b)
+	})
+
+	// END of ID
+	t.addTransition(S1, S0, 0, matchDel, func(a rune, b *rune) {
 		if !sc.IsReserved(sc.token) {
-			tk = token.NewToken(token.ID, sc.token, "02")
+			sc.newToken(token.ID, "02")
 			//TODO: check ST
-		}else {
+		} else {
 			//TODO que devolver en TIPO
-			tk = token.NewToken(token.ID, sc.token, "02")
-
+			sc.newToken(token.ID, "01")
 		}
-		sc.AddToken(tk)
-		t.current = t.initial
-	}, matchDel)
+	})
 
-	t.initial = 0
-	t.current = 0
+	//Start INT LITERAL
+	t.addTransition(S0, S2, 0, matchDigit, func(a rune, next *rune) {
+		sc.appendChar(a)
+		sc.nextChar(next)
+	})
+
+	// Cont INT LITERAL
+	t.addTransition(S2, S2, 0, matchDigit, func(a rune, b *rune) {
+		sc.appendChar(a)
+		sc.nextChar(b)
+	})
+
+	// END INT LITERAL
+	t.addTransition(S2, S0, 0, matchEndInt, func(a rune, b *rune) {
+		var raw int64 = 0
+		var value int32
+		for _, c := range sc.token {
+			d := int64(c - '0')
+			raw *= 10
+			raw += d
+			r, ok := safeInt32(raw)
+			if !ok {
+				sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%s' supera el maximo permitido.",sc.token))
+				sc.token=""
+				return
+			}
+			value=r
+		}
+
+		sc.newToken(token.INT_LITERAL, fmt.Sprintf("%d",value))
+	})
+
+	//BEGIN STRING_LITERAL
+	t.addTransition(S0,S3,'"',nil,func(a rune, b *rune){
+		sc.appendChar(a)
+		sc.nextChar(b)
+	})
+	//CONT STRING LITERAL
+	t.addTransition(S3,S3,0,matchNotDQ,func(a rune,b *rune){
+		sc.appendChar(a)
+		sc.nextChar(b)
+	})
+	//END STRING LITERAL
+	t.addTransition(S3,S0,'"',nil,func(a rune,b *rune){
+		sc.appendChar(a)
+		if len(sc.token)-2 >MAX_STRING{
+			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres",sc.token))
+		}else{
+			sc.newToken(token.STRING_LITERAL,sc.token)
+		}
+		sc.nextChar(b)
+	})
 	t.debugPrint()
 	return t
 }
 
-var matchID = func(c rune) bool {
+func safeInt32(n int64) (int32, bool) {
+	if n < math.MinInt32 || n > math.MaxInt32 {
+		return 0, false
+	}
+	return int32(n), true
+}
+
+var matchNotDQ= func (c rune)bool{
+	return c!='"'
+}
+var matchEndInt = func(c rune) bool {
+	return !(c >= '0' && c <= '9')
+}
+var matchId = func(c rune) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= '0' && c <= '9')
+}
+var matchIdFirst = func(c rune) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+var matchDigit = func(c rune) bool {
+	return c >= '0' && c <= '9'
 }
 
 // match delimiters
@@ -134,9 +224,8 @@ func (m *TransitionTable) debugPrint() {
 	if DEBUG {
 		fmt.Printf("DEBUG: Printing transition table\n")
 		for i, k := range m.table {
-			fmt.Printf("Transitions for S%v\n", i)
 			for j, w := range k {
-				fmt.Printf("[%d]->%v\n", j, w.next)
+				fmt.Printf("S%d(%d)->S%v\n", i, j, w.next)
 			}
 			fmt.Println("------------")
 		}

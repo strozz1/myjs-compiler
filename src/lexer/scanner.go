@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"slices"
 	"bufio"
 	"compiler-pdl/src/diagnostic"
 	"compiler-pdl/src/st"
@@ -9,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 )
 
 var DEBUG bool
@@ -16,7 +16,7 @@ var DEBUG bool
 type Scanner struct {
 	//current char red
 	current rune
-	//token
+	//buffer red
 	token string
 	//buffer reader
 	reader *bufio.Reader
@@ -30,19 +30,32 @@ type Scanner struct {
 	errManager *diagnostic.ErrorManager
 }
 
+// Creates new token with the current buffer string.
+// It calls the token Manager to Push the new token and
+// resets the buffer 'token' for next tokens.
+func (sc *Scanner) newToken(d token.TokenKind, param2 string) {
+	tk := token.NewToken(d, sc.token, param2)
+	sc.tkManager.PushToken(tk)
+	sc.token = ""
+}
+
+// Check if it's a reserved keyword
 func (s *Scanner) IsReserved(token string) bool {
 	return slices.Contains(s.st.ReservedWords, token)
 }
 
+//Append char to current token lexeme
+func (s *Scanner) appendChar(c rune) {
+	s.token = string(append([]rune(s.token), c))
+}
 func (s *Scanner) Write() {
+	if DEBUG {
+		fmt.Printf("DEBUG: Writting tokens to file\n")
+	}
 	s.tkManager.Write()
 }
 
-func (s *Scanner) AddToken(token token.Token) {
-	s.tkManager.AddToken(token)
-}
-
-func (s *Scanner) NewLine() {
+func (s *Scanner) newLine() {
 	s.errManager.NewLine()
 }
 
@@ -71,7 +84,9 @@ func NewScanner(r *bufio.Reader, st *st.STManager, diagnostic *diagnostic.ErrorM
 	return sc, nil
 }
 
-func (s *Scanner) Next(next *rune) {
+// reads the next char from the input reader.
+// Sets the value to the rune pointer
+func (s *Scanner) nextChar(next *rune) {
 	char, _, err := s.reader.ReadRune()
 	*next = char
 	if err != nil {
@@ -103,5 +118,5 @@ func (s *Scanner) Scan() {
 // Returns the last token generated. If token found also returns true.
 // Internally, it checks s.tokenPos(last token gotten) and if new tokens returns it.
 func (s *Scanner) Token() (token.Token, bool) {
-	return s.tkManager.NextToken()
+	return s.tkManager.PopToken()
 }

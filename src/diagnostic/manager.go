@@ -31,6 +31,9 @@ func (m *ErrorManager) NewLine(){
 }
 
 func (m *ErrorManager) Write(){
+	if DEBUG && len(m.errors)>0{
+		fmt.Printf("DEBUG: Writing errors to output\n")
+	}
 	for _,e:=range m.errors{
 		fmt.Fprintf(m.writer,"%v\n",e.ToString())
 	}
