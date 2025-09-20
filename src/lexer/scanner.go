@@ -33,8 +33,8 @@ type Scanner struct {
 // Creates new token with the current buffer string.
 // It calls the token Manager to Push the new token and
 // resets the buffer 'token' for next tokens.
-func (sc *Scanner) newToken(d token.TokenKind, param2 string) {
-	tk := token.NewToken(d, sc.token, param2)
+func (sc *Scanner) newToken(d token.TokenKind, attr string) {
+	tk := token.NewToken(d, sc.token, attr)
 	sc.tkManager.PushToken(tk)
 	sc.token = ""
 }

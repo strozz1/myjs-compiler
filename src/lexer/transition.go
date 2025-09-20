@@ -99,6 +99,7 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		S5
 		S6
 		S7
+		S8
 	)
 
 	//delimiters
@@ -129,13 +130,12 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	})
 
 	// END of ID
-	t.addTransition(S1, S0, 0, matchDel, func(a rune, b *rune) {
-		if !sc.IsReserved(sc.token) {
-			sc.newToken(token.ID, "02")
-			//TODO: check ST
+	t.addTransition(S1, S0, 0, matchEndId, func(a rune, b *rune) {
+		if sc.IsReserved(sc.token) {
+			sc.newToken(token.From(sc.token), "-")
 		} else {
-			//TODO que devolver en TIPO
-			sc.newToken(token.ID, "01")
+			sc.newToken(token.ID, "-")
+			//TODO: check ST
 		}
 	})
 
@@ -223,6 +223,47 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	t.addTransition(S7,S0,'/',nil,func(a rune, b *rune){
 		sc.nextChar(b)
 	})
+
+	//curl
+	t.addTransition(S0,S0,'{',nil,func(a rune, b *rune){
+		sc.newToken(token.OPEN_CURLY,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S0,'}',nil,func(a rune, b *rune){
+		sc.newToken(token.CLOSE_CURLY,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S0,'(',nil,func(a rune, b *rune){
+		sc.newToken(token.OPEN_PAR,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S0,')',nil,func(a rune, b *rune){
+		sc.newToken(token.CLOSE_PAR,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S0,',',nil,func(a rune, b *rune){
+		sc.newToken(token.COMMA,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S0,';',nil,func(a rune, b *rune){
+		sc.newToken(token.SEMICOLON,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S0,'=',nil,func(a rune, b *rune){
+		sc.newToken(token.ASIGN,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S0,'+',nil,func(a rune, b *rune){
+		sc.newToken(token.PLUS,"-")
+		sc.nextChar(b)
+	})
+	t.addTransition(S0,S8,'&',nil,func(a rune, b *rune){
+		sc.nextChar(b)
+	})
+	t.addTransition(S8,S0,'&',nil,func(a rune, b *rune){
+		sc.newToken(token.LOGIC_AND,"-")
+		sc.nextChar(b)
+	})
 	t.debugPrint()
 	return t
 }
@@ -248,6 +289,9 @@ var matchEndInt = func(c rune) bool {
 var matchId = func(c rune) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= '0' && c <= '9')
 }
+var matchEndId=func(c rune) bool{
+	return !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= '0' && c <= '9'))
+}
 var matchIdFirst = func(c rune) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
 }
@@ -257,7 +301,7 @@ var matchDigit = func(c rune) bool {
 
 // match delimiters
 var matchDel = func(c rune) bool {
-	return c == ' ' || c == '\t' || c == '\n' || c == 0
+	return c == ' ' || c == '\t' || c == 0
 }
 
 func (m *TransitionTable) debugPrint() {
