@@ -96,6 +96,9 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		S2
 		S3
 		S4
+		S5
+		S6
+		S7
 	)
 
 	//delimiters
@@ -169,23 +172,55 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	})
 
 	//BEGIN STRING_LITERAL
-	t.addTransition(S0,S3,'"',nil,func(a rune, b *rune){
+	t.addTransition(S0,S3,'\'',nil,func(a rune, b *rune){
 		sc.appendChar(a)
 		sc.nextChar(b)
 	})
 	//CONT STRING LITERAL
-	t.addTransition(S3,S3,0,matchNotDQ,func(a rune,b *rune){
+	t.addTransition(S3,S3,0,matchNotQuote,func(a rune,b *rune){
 		sc.appendChar(a)
 		sc.nextChar(b)
 	})
 	//END STRING LITERAL
-	t.addTransition(S3,S0,'"',nil,func(a rune,b *rune){
+	t.addTransition(S3,S0,'\'',nil,func(a rune,b *rune){
 		sc.appendChar(a)
 		if len(sc.token)-2 >MAX_STRING{
 			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres",sc.token))
 		}else{
 			sc.newToken(token.STRING_LITERAL,sc.token)
 		}
+		sc.nextChar(b)
+	})
+
+	//comment
+	t.addTransition(S0,S4,'/',nil,func(a rune,b *rune){
+		sc.nextChar(b)
+	})
+	t.addTransition(S4,S5,'*',nil,func(a rune, b *rune){
+		sc.nextChar(b)
+	})
+	t.addTransition(S5,S6,0,matchNotStar,func(a rune, b *rune){
+		if a=='\n'{
+			sc.newLine()
+		}
+		sc.nextChar(b)
+	})
+	t.addTransition(S6,S6,0,matchNotStar,func(a rune, b *rune){
+		if a=='\n'{
+			sc.newLine()
+		}
+		sc.nextChar(b)
+	})
+	t.addTransition(S6,S7,'*',nil,func(a rune, b *rune){
+		sc.nextChar(b)
+	})
+	t.addTransition(S7,S6,0,matchNotInv,func(a rune, b *rune){
+		if a=='\n'{
+			sc.newLine()
+		}
+		sc.nextChar(b)
+	})
+	t.addTransition(S7,S0,'/',nil,func(a rune, b *rune){
 		sc.nextChar(b)
 	})
 	t.debugPrint()
@@ -198,9 +233,14 @@ func safeInt32(n int64) (int32, bool) {
 	}
 	return int32(n), true
 }
-
-var matchNotDQ= func (c rune)bool{
-	return c!='"'
+var matchNotInv= func(c rune)bool{
+	return c!='/'
+}
+var matchNotStar = func(c rune)bool{
+	return c!='*'
+}
+var matchNotQuote= func (c rune)bool{
+	return c!='\''
 }
 var matchEndInt = func(c rune) bool {
 	return !(c >= '0' && c <= '9')

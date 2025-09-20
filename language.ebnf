@@ -12,6 +12,12 @@ ASIG = :=
 STRING_LITERAL = " any char " limit 128
 INT_LITERAL = digit+ limit 2^32-1
 
+(* Palabras reservadas *)
+do
+while
+var
+if
+
 
 (* Grammar *)
 ->S

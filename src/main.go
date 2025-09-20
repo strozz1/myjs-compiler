@@ -37,6 +37,7 @@ func main(){
 	tkManager:=token.NewTokenManager(bufio.NewWriter(tkFile))
 
 	symTable:=st.CreateSTManager(os.Stdout);
+	initST(&symTable)
 	errManager:=diagnostic.NewErrorManager(os.Stderr)
 
 
@@ -51,6 +52,21 @@ func main(){
 	errManager.Write()
 }
 
+func initST(stManager *st.STManager){
+	stManager.ReservedWords=[]string{
+		"do","while","if","function","var","return",
+	}
+	stManager.CreateAttribute("despl", "despl", st.T_INTEGER)
+	stManager.CreateAttribute("numero de parametros", "numParam", st.T_INTEGER)
+	stManager.CreateAttribute("tipo de parametros", "tipoParam", st.T_ARRAY)
+	stManager.CreateAttribute("modo de parametros", "modoParam", st.T_ARRAY)
+	stManager.CreateAttribute("tipo de retorno", "tipoRetorno", st.T_STRING)
+	stManager.CreateAttribute("etiqueta", "etiqFuncion",st.T_STRING)
+	stManager.CreateAttribute("parametro", "param",st.T_INTEGER)
+	stManager.CreateAttribute("dimension", "dimension",st.T_INTEGER)
+	stManager.CreateAttribute("elem", "elem",st.T_STRING)
+
+}
 func debug() {
 	DEBUG=true
 	diagnostic.DEBUG=true
