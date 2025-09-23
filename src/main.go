@@ -45,12 +45,11 @@ func main(){
 	scanner.ScanTokens()
 	scanner.WriteTokens(bufio.NewWriter(tkFile))
 	scanner.WriteErrors(os.Stderr)
-	
 }
 
 func initST(stManager *st.STManager){
 	stManager.ReservedWords=[]string{
-		"do","while","if","function","var","return",
+		"do","while","if","function","var","return","break",
 	}
 	stManager.CreateAttribute("despl", "despl", st.T_INTEGER)
 	stManager.CreateAttribute("numero de parametros", "numParam", st.T_INTEGER)
