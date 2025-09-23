@@ -6,6 +6,7 @@ import (
 )
 
 type TokenKind int
+
 var DEBUG bool
 
 func From(token string) TokenKind {
@@ -21,52 +22,74 @@ func From(token string) TokenKind {
 		t = FUNCTION
 	case "return":
 		t = RETURN
+	case "int":
+		t = INT
+	case "if":
+		t = IF
+	case "break":
+		t = BREAK
+	case "boolean":
+		t = BOOLEAN
+	case "NULL":
+		t =NULL
 	}
 	return t
 }
 
 const (
 	ID TokenKind = iota
-	STRING_LITERAL
-	INT_LITERAL
-	OPEN_CURLY
-	CLOSE_CURLY
-	OPEN_PAR
-	CLOSE_PAR
+	EOL
+	ASIGNACION
+	ENTERO_LIT
+	CADENA_LIT
+	ABRIR_PAR
+	CERRAR_PAR
+	ABRIR_CORCH
+	CERRAR_CORCH
+	COMA
+	PUNTOYCOMA
+
+	ARITM
+	RELAC
+	LOGICO
+
+	//reserved
 	DO
 	WHILE
-	ASIGN
 	VAR
 	FUNCTION
 	RETURN
-	COMMA
-	SEMICOLON
-	PLUS
-	LOGIC_AND
+	IF
+	BREAK
+	NULL
+	BOOLEAN
+	INT
 )
 
 func (t TokenKind) toString() string {
 	var str string
 	switch t {
-	case STRING_LITERAL:
-		str = "STRING_LITERAL"
-	case INT_LITERAL:
-		str = "INT_LITERAL"
-	case OPEN_CURLY:
-		str = "OPEN_CURLY"
-	case CLOSE_CURLY:
-		str = "CLOSE_CURLY"
-	case OPEN_PAR:
-		str = "OPEN_PAR"
-	case CLOSE_PAR:
-		str = "CLOSE_PAR"
+	case EOL:
+		str = "EOL"
+	case CADENA_LIT:
+		str = "CADENA_LIT"
+	case ENTERO_LIT:
+		str = "ENTERO_LIT"
+	case ABRIR_CORCH:
+		str = "ABRIR_CORCH"
+	case CERRAR_CORCH:
+		str = "CERRAR_CORCH"
+	case ABRIR_PAR:
+		str = "ABRIR_PAR"
+	case CERRAR_PAR:
+		str = "CERRAR_PAR"
 	case ID:
 		str = "ID"
 	case DO:
 		str = "DO"
 	case WHILE:
 		str = "WHILE"
-	case ASIGN:
+	case ASIGNACION:
 		str = "ASIGN"
 	case VAR:
 		str = "VAR"
@@ -74,14 +97,27 @@ func (t TokenKind) toString() string {
 		str = "FUNCTION"
 	case RETURN:
 		str = "RETURN"
-	case COMMA:
-		str = "COMMA"
-	case SEMICOLON:
-		str = "SEMICOLON"
-	case PLUS:
-		str = "PLUS"
-	case LOGIC_AND:
-		str = "LOGIC_AND"
+	case COMA:
+		str = "COMA"
+	case PUNTOYCOMA:
+		str = "PUNTOYCOMA"
+	case ARITM:
+		str = "ARITM"
+	case LOGICO:
+		str = "LOGICO"
+	case RELAC:
+		str = "RELAC"
+	case IF:
+		str = "IF"
+	case BREAK:
+		str = "BREAK"
+	case BOOLEAN:
+		str = "BOOLEAN"
+	case NULL:
+		str= "NULL"
+	case INT:
+		str = "INT"
+
 	}
 	return str
 }

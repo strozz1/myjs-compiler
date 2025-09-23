@@ -18,7 +18,7 @@ type Scanner struct {
 	currentChar rune
 	//buffer red
 	lexeme string
-	intVal int
+	intVal int64
 
 	//buffer input reader
 	reader *bufio.Reader
@@ -35,6 +35,8 @@ type Scanner struct {
 	STManager *st.STManager
 	//Error Manager
 	errManager diagnostic.ErrorManager
+
+	eof bool
 }
 
 // Creates a new scanner.
@@ -88,9 +90,9 @@ func (s *Scanner) newLine() {
 // Sets the value to the rune pointer
 func (s *Scanner) nextChar() {
 	char, _, err := s.reader.ReadRune()
-	s.currentChar = char
 	if err != nil {
 		if err == io.EOF {
+			s.eof = true
 			if DEBUG {
 				fmt.Println("DEBUG: EOF found. Finished reading input file")
 			}
@@ -99,25 +101,26 @@ func (s *Scanner) nextChar() {
 		if DEBUG {
 			fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
 		}
-		return
 	}
+	s.currentChar = char
 }
 
-// The algorithm of the actual scanner
+// The algorithm of the actual scanner. Saves the tokens in 's.tokens' and can be
+// retreived one by one with 's.GetToken()'.
 func (s *Scanner) ScanTokens() {
-	for s.currentChar != 0 {
-		e, err := s.transitions.Find(s.currentChar)
+	for !s.eof {
+		transition, err := s.transitions.Find(s.currentChar)
 		if err != nil {
 			s.errManager.NewError(diagnostic.LEXICAL, err.Error())
 			return //TODO
 		}
-		e.Action()
+		transition.Action()
 	}
 }
 
-// Returns Token if there is a new one. This does not remove the token from the actual list
-// Used to know what Token is next in the reading queue.
-func (s *Scanner) Token() (token.Token, bool) {
+// Returns GetToken if there is a new one. This does not remove the token from the actual list
+// Used to know what GetToken is next in the reading queue.
+func (s *Scanner) GetToken() (token.Token, bool) {
 	if len(s.tokens) == 0 || s.lastTokenRed >= len(s.tokens) {
 		return token.Token{}, false
 	}

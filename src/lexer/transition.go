@@ -6,12 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 )
-const MAX_STRING=128
 
-//Defines a Match for the transition
+const MAX_STRING = 128
+
+// Defines a Match for the transition
 type Match func(r rune) bool
-//Defines a Semantical Action for the lexer to perform
+
+// Defines a Semantical Action for the lexer to perform
 type Action func()
 type State int
 
@@ -24,8 +27,6 @@ type TransEntry struct {
 	Action Action
 	Match  Match
 }
-
-
 
 // Reprensents the transition table from the DFA
 type TransitionTable struct {
@@ -62,20 +63,24 @@ func (t *TransitionTable) addTransition(currentState State, nextState State, cha
 }
 
 func (t *TransitionTable) Find(char rune) (*TransEntry, error) {
-	tr, ok := t.table[t.currentState]
+	//check if we are in a final state
+	if slices.Contains(t.finals, t.currentState) {
+		t.currentState = t.start
+	}
+	transition, ok := t.table[t.currentState]
 	if !ok {
 		return &TransEntry{}, errors.New("State not found")
 	}
-	for r, i := range tr {
+	for r, i := range transition {
 		//if a match set r
 		if i.Match != nil && i.Match(char) {
 			char = r
 			break
 		}
 	}
-	entry, ok := tr[char]
+	entry, ok := transition[char]
 	if !ok {
-		return entry, fmt.Errorf("Caracter no valido '%c'",char)
+		return entry, fmt.Errorf("Caracter no valido '%c'", char)
 	}
 	t.currentState = entry.Next
 	return entry, nil
@@ -93,6 +98,8 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		S6
 		S7
 		S8
+		S9
+		S10
 	)
 	t := TransitionTable{
 		table:        map[State]map[rune]*TransEntry{},
@@ -140,127 +147,127 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 
 	//Start INT LITERAL
 	t.addTransition(S0, S2, 0, matchDigit, func() {
-		sc.appendChar()
+		sc.intVal *= 10
+		d := int64(sc.currentChar - '0')
+		sc.intVal += d
 		sc.nextChar()
 	})
 
 	// Cont INT LITERAL
 	t.addTransition(S2, S2, 0, matchDigit, func() {
-		sc.appendChar()
+		sc.intVal *= 10
+		d := int64(sc.currentChar - '0')
+		sc.intVal += d
 		sc.nextChar()
 	})
 
 	// END INT LITERAL
 	t.addTransition(S2, S0, 0, matchEndInt, func() {
-		var raw int64 = 0
-		var value int32
-		for _, c := range sc.lexeme {
-			d := int64(c - '0')
-			raw *= 10
-			raw += d
-			r, ok := safeInt32(raw)
-			if !ok {
-				sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%s' supera el maximo permitido.",sc.lexeme))
-				sc.lexeme=""
-				return
-			}
-			value=r
+		value, ok := safeInt32(sc.intVal)
+		if !ok {
+			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%d' supera el maximo permitido.", sc.intVal))
+			sc.lexeme = ""
+			return
 		}
-
-		sc.newToken(token.INT_LITERAL, fmt.Sprintf("%d",value))
+		sc.newToken(token.ENTERO_LIT, fmt.Sprintf("%d", value))
 	})
 
 	//BEGIN STRING_LITERAL
-	t.addTransition(S0,S3,'\'',nil,func(){
+	t.addTransition(S0, S3, '\'', nil, func() {
 		sc.appendChar()
 		sc.nextChar()
 	})
 	//CONT STRING LITERAL
-	t.addTransition(S3,S3,0,matchNotQuote,func(){
+	t.addTransition(S3, S3, 0, matchNotQuote, func() {
 		sc.appendChar()
 		sc.nextChar()
 	})
 	//END STRING LITERAL
-	t.addTransition(S3,S0,'\'',nil,func(){
+	t.addTransition(S3, S0, '\'', nil, func() {
 		sc.appendChar()
-		if len(sc.lexeme)-2 >MAX_STRING{
-			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres",sc.lexeme))
-		}else{
-			sc.newToken(token.STRING_LITERAL,sc.lexeme)
+		if len(sc.lexeme)-2 > MAX_STRING {
+			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres", sc.lexeme))
+		} else {
+			sc.newToken(token.CADENA_LIT, sc.lexeme)
 		}
 		sc.nextChar()
 	})
 
 	//comment
-	t.addTransition(S0,S4,'/',nil,func(){
+	t.addTransition(S0, S4, '/', nil, func() {
 		sc.nextChar()
 	})
-	t.addTransition(S4,S5,'*',nil,func(){
+	t.addTransition(S4, S5, '*', nil, func() {
 		sc.nextChar()
 	})
-	t.addTransition(S5,S6,0,matchNotStar,func(){
-		if sc.currentChar=='\n'{
+	t.addTransition(S5, S6, 0, matchNotStar, func() {
+		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
 		sc.nextChar()
 	})
-	t.addTransition(S6,S6,0,matchNotStar,func(){
-		if sc.currentChar=='\n'{
+	t.addTransition(S6, S6, 0, matchNotStar, func() {
+		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
 		sc.nextChar()
 	})
-	t.addTransition(S6,S7,'*',nil,func(){
+	t.addTransition(S6, S7, '*', nil, func() {
 		sc.nextChar()
 	})
-	t.addTransition(S7,S6,0,matchNotInv,func(){
-		if sc.currentChar=='\n'{
+	t.addTransition(S7, S6, 0, matchNotInv, func() {
+		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
 		sc.nextChar()
 	})
-	t.addTransition(S7,S0,'/',nil,func(){
+	t.addTransition(S7, S0, '/', nil, func() {
 		sc.nextChar()
 	})
 
 	//curl
-	t.addTransition(S0,S0,'{',nil,func(){
-		sc.newToken(token.OPEN_CURLY,"-")
+	t.addTransition(S0, S0, '{', nil, func() {
+		sc.newToken(token.ABRIR_PAR, "-")
 		sc.nextChar()
 	})
-	t.addTransition(S0,S0,'}',nil,func(){
-		sc.newToken(token.CLOSE_CURLY,"-")
+	t.addTransition(S0, S0, '}', nil, func() {
+		sc.newToken(token.CERRAR_PAR, "-")
 		sc.nextChar()
 	})
-	t.addTransition(S0,S0,'(',nil,func(){
-		sc.newToken(token.OPEN_PAR,"-")
+	t.addTransition(S0, S0, '(', nil, func() {
+		sc.newToken(token.ABRIR_PAR, "-")
 		sc.nextChar()
 	})
-	t.addTransition(S0,S0,')',nil,func(){
-		sc.newToken(token.CLOSE_PAR,"-")
+	t.addTransition(S0, S0, ')', nil, func() {
+		sc.newToken(token.CERRAR_PAR, "-")
 		sc.nextChar()
 	})
-	t.addTransition(S0,S0,',',nil,func(){
-		sc.newToken(token.COMMA,"-")
+	t.addTransition(S0, S0, ',', nil, func() {
+		sc.newToken(token.COMA, "-")
 		sc.nextChar()
 	})
-	t.addTransition(S0,S0,';',nil,func(){
-		sc.newToken(token.SEMICOLON,"-")
+	t.addTransition(S0, S0, ';', nil, func() {
+		sc.newToken(token.PUNTOYCOMA, "-")
 		sc.nextChar()
 	})
-	t.addTransition(S0,S0,'=',nil,func(){
-		sc.newToken(token.ASIGN,"-")
+
+	//asign
+	t.addTransition(S0, S9, ':', nil, func() {
 		sc.nextChar()
 	})
-	t.addTransition(S0,S0,'+',nil,func(){
-		sc.newToken(token.PLUS,"-")
+	t.addTransition(S9, S0, '=', nil, func() {
+		sc.newToken(token.ASIGNACION, "-")
 		sc.nextChar()
 	})
-	t.addTransition(S0,S8,'&',nil,func(){
+	t.addTransition(S0, S0, '+', nil, func() {
+		sc.newToken(token.ARITM, "+")
 		sc.nextChar()
 	})
-	t.addTransition(S8,S0,'&',nil,func(){
-		sc.newToken(token.LOGIC_AND,"-")
+	t.addTransition(S0, S8, '&', nil, func() {
+		sc.nextChar()
+	})
+	t.addTransition(S8, S0, '&', nil, func() {
+		sc.newToken(token.LOGICO, "&")
 		sc.nextChar()
 	})
 	t.debugPrint()
@@ -273,14 +280,15 @@ func safeInt32(n int64) (int32, bool) {
 	}
 	return int32(n), true
 }
-var matchNotInv= func(c rune)bool{
-	return c!='/'
+
+var matchNotInv = func(c rune) bool {
+	return c != '/'
 }
-var matchNotStar = func(c rune)bool{
-	return c!='*'
+var matchNotStar = func(c rune) bool {
+	return c != '*'
 }
-var matchNotQuote= func (c rune)bool{
-	return c!='\''
+var matchNotQuote = func(c rune) bool {
+	return c != '\''
 }
 var matchEndInt = func(c rune) bool {
 	return !(c >= '0' && c <= '9')
@@ -288,7 +296,7 @@ var matchEndInt = func(c rune) bool {
 var matchId = func(c rune) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= '0' && c <= '9')
 }
-var matchEndId=func(c rune) bool{
+var matchEndId = func(c rune) bool {
 	return !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= '0' && c <= '9'))
 }
 var matchIdFirst = func(c rune) bool {

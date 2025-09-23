@@ -1,28 +1,48 @@
 (* Groups *)
 digit = [0-9]
-l = [a-z] || [A-Z]
+l = [a-z] | [A-Z]
 c = any char
-del = ' ' || '\t' || '\r'
+del = ' ' | '\t' | '\r'
 EOL = '\n'
 
 (* Tokens *)
-ID = l(digit || l|| '_')* limit 128
-ASIG = :=
+<EOL,-> = '\n'
+<ASIGNACION,-> = ':='
+<ENTERO_LIT,valor> = digit+ limit 2^32-1
+<ID,pos> = l(digit | l | '_')* limit 128
+<CADENA_LIT,'lexema'> = ' any char ' limit 128
+<ABRIR_PAR,-> 
+<CERRAR_PAR,-> 
+<ABRIR_CORCH,-> 
+<CERRAR_CORCH,-> 
+<COMA,->
+<PUNTOYCOMA,->
+<ARITM,+>
+<RELAC,==>
+<LOGICO,&&>
 
-STRING_LITERAL = " any char " limit 128
-INT_LITERAL = digit+ limit 2^32-1
+
+
+
 
 (* Palabras reservadas *)
-do
-while
-var
-if
+<DO,-> do
+<WHILE,-> while
+<VAR,-> var
+<FUNCTION,-> function
+<RETURN,-> return
+<IF,-> if 
+<BREAK,-> break
+<NULL,-> NULL
+<INT,-> int
+<BOOLEAN,-> boolean
 
+Comentarios -> /* any char  */
 
 (* Grammar *)
 ->S
-S -> :X | lA | "S | dD | { | } | ( | ) | =
+S -> delS | EOL | :X | dD | lA | 'S | { | } | ( | ) | 
 X -> =
-A -> dA | lA | _A | lambda
-S -> cS | " 
 D -> dD | lambda
+A -> dA | lA | _A | lambda
+S -> cS | ' 
