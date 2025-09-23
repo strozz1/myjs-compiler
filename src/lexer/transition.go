@@ -57,9 +57,6 @@ func (t *TransitionTable) addTransition(currentState State, nextState State, cha
 		}
 	}
 	trans[char] = &TransEntry{next: nextState, action: action, match: match}
-	if DEBUG {
-		fmt.Printf("DEBUG: New transition [S%v,char('%d')]=S%v]\n", currentState, char, nextState)
-	}
 }
 
 func (t *TransitionTable) Find(char rune) (*TransEntry, error) {
@@ -84,12 +81,6 @@ func (t *TransitionTable) Find(char rune) (*TransEntry, error) {
 
 // Generates de transitions of the DFA for the lexer.
 func GenerateTransitions(sc *Scanner) TransitionTable {
-	t := TransitionTable{
-		table:        map[State]map[rune]*TransEntry{},
-		finals:       []State{},
-		start:        0,
-		currentState: 0,
-	}
 	const (
 		S0 State = iota
 		S1
@@ -101,6 +92,12 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		S7
 		S8
 	)
+	t := TransitionTable{
+		table:        map[State]map[rune]*TransEntry{},
+		finals:       []State{},
+		start:        S0,
+		currentState: S0,
+	}
 
 	//delimiters
 	t.addTransition(S0, S0, 0, matchDel, func(a rune, b *rune) {
@@ -119,20 +116,20 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 
 	// Start of ID
 	t.addTransition(S0, S1, 0, matchIdFirst, func(a rune, b *rune) {
-		sc.token = string(append([]rune(sc.token), a))
+		sc.lexeme = string(append([]rune(sc.lexeme), a))
 		sc.nextChar(b)
 	})
 
 	// Cont of ID
 	t.addTransition(S1, S1, 0, matchId, func(a rune, b *rune) {
-		sc.token = string(append([]rune(sc.token), a))
+		sc.lexeme = string(append([]rune(sc.lexeme), a))
 		sc.nextChar(b)
 	})
 
 	// END of ID
 	t.addTransition(S1, S0, 0, matchEndId, func(a rune, b *rune) {
-		if sc.IsReserved(sc.token) {
-			sc.newToken(token.From(sc.token), "-")
+		if sc.isReserved(sc.lexeme) {
+			sc.newToken(token.From(sc.lexeme), "-")
 		} else {
 			sc.newToken(token.ID, "-")
 			//TODO: check ST
@@ -155,14 +152,14 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	t.addTransition(S2, S0, 0, matchEndInt, func(a rune, b *rune) {
 		var raw int64 = 0
 		var value int32
-		for _, c := range sc.token {
+		for _, c := range sc.lexeme {
 			d := int64(c - '0')
 			raw *= 10
 			raw += d
 			r, ok := safeInt32(raw)
 			if !ok {
-				sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%s' supera el maximo permitido.",sc.token))
-				sc.token=""
+				sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%s' supera el maximo permitido.",sc.lexeme))
+				sc.lexeme=""
 				return
 			}
 			value=r
@@ -184,10 +181,10 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	//END STRING LITERAL
 	t.addTransition(S3,S0,'\'',nil,func(a rune,b *rune){
 		sc.appendChar(a)
-		if len(sc.token)-2 >MAX_STRING{
-			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres",sc.token))
+		if len(sc.lexeme)-2 >MAX_STRING{
+			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres",sc.lexeme))
 		}else{
-			sc.newToken(token.STRING_LITERAL,sc.token)
+			sc.newToken(token.STRING_LITERAL,sc.lexeme)
 		}
 		sc.nextChar(b)
 	})

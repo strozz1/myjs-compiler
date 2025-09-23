@@ -9,14 +9,13 @@ var DEBUG bool
 
 type ErrorManager struct{
 	currentLine int
-	writer io.Writer
 	errors []Error
 }
-func NewErrorManager(w io.Writer)ErrorManager{
+func NewErrorManager()ErrorManager{
 	if DEBUG{
 		fmt.Printf("DEBUG: Initializing Error Manager\n")
 	}
-	return ErrorManager{currentLine: 1, writer:w,errors:[]Error{}}
+	return ErrorManager{currentLine: 1,errors:[]Error{}}
 
 }
 
@@ -30,11 +29,11 @@ func (m *ErrorManager) NewLine(){
 	m.currentLine++
 }
 
-func (m *ErrorManager) Write(){
+func (m *ErrorManager) Write(writer io.Writer){
 	if DEBUG && len(m.errors)>0{
 		fmt.Printf("DEBUG: Writing errors to output\n")
 	}
 	for _,e:=range m.errors{
-		fmt.Fprintf(m.writer,"%v\n",e.ToString())
+		fmt.Fprintf(writer,"%v\n",e.ToString())
 	}
 }

@@ -18,20 +18,17 @@ type STManager struct {
 	//template, so when you want to use it for an Entry you need to take it and modify it with the
 	//corresponding values
 	Attributes map[string]Attribute
-	Writer     io.Writer
 }
 
 // Creates a new SymbolTable Manager.
-// @filename: file path where the Table will be written to.
 // Initializes the global SymbolTable.
-func CreateSTManager(writer io.Writer) STManager {
+func NewSTManager() *STManager {
 	if DEBUG {
 		fmt.Printf("DEBUG: Initializing STManager\n\r")
 	}
 
-	return STManager{
+	return &STManager{
 		Global:     createST("Global Table"),
-		Writer:     writer,
 		Attributes: map[string]Attribute{},
 	}
 }
@@ -122,6 +119,6 @@ func (m *STManager) containsAttribute(name string) bool {
 
 // Writes ST to the file specified
 // @st: symbol table to write to the file
-func (m *STManager) Write(st *SymbolTable) {
-	st.Write(m.Writer)
+func (m *STManager) Write(writer io.Writer,st *SymbolTable) {
+	st.Write(writer)
 }

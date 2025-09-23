@@ -14,45 +14,64 @@ import (
 var DEBUG bool
 
 type Scanner struct {
-	//current char red
-	current rune
+	//currentChar char red
+	currentChar rune
 	//buffer red
-	token string
-	//buffer reader
+	lexeme string
+	intVal int
+
+	//buffer input reader
 	reader *bufio.Reader
+
 	//transition table
 	transitions TransitionTable
-	//token manager
-	tkManager *token.TokenManager
+	//tokens
+	tokens []token.Token
+
+	//last token red from outsiders(not last token created)
+	lastTokenRed int
+
 	//SymbolTable manager
-	st *st.STManager
+	STManager *st.STManager
 	//Error Manager
-	errManager *diagnostic.ErrorManager
+	errManager diagnostic.ErrorManager
 }
 
+
 // Creates new token with the current buffer string.
-// It calls the token Manager to Push the new token and
-// resets the buffer 'token' for next tokens.
+// resets the buffer 'lexeme' & 'intVal' for next tokens.
 func (sc *Scanner) newToken(d token.TokenKind, attr string) {
-	tk := token.NewToken(d, sc.token, attr)
-	sc.tkManager.PushToken(tk)
-	sc.token = ""
+	tk := token.NewToken(d, sc.lexeme, attr)
+	sc.tokens = append(sc.tokens, tk)
+	sc.lexeme = ""
+	sc.intVal = 0
 }
 
 // Check if it's a reserved keyword
-func (s *Scanner) IsReserved(token string) bool {
-	return slices.Contains(s.st.ReservedWords, token)
+func (s *Scanner) isReserved(token string) bool {
+	return slices.Contains(s.STManager.ReservedWords, token)
 }
 
-//Append char to current token lexeme
+// Append char to current token lexeme
 func (s *Scanner) appendChar(c rune) {
-	s.token = string(append([]rune(s.token), c))
+	s.lexeme = string(append([]rune(s.lexeme), c))
 }
-func (s *Scanner) Write() {
+
+// WriteTokens all the tokens with the 'Writer' parameter. The output format follows the
+// convention described in PDL subject.
+func (s *Scanner) WriteTokens(w *bufio.Writer) {
 	if DEBUG {
-		fmt.Printf("DEBUG: Writting tokens to file\n")
+		fmt.Printf("DEBUG: Writting %v tokens to file\n",len(s.tokens))
 	}
-	s.tkManager.Write()
+	for _, t := range s.tokens {
+		t.Write(w)
+	}
+	w.Flush()
+}
+
+//Write lexical errors with the specified Writer
+func (s *Scanner) WriteErrors(w io.Writer){
+	s.errManager.Write(w)
 }
 
 func (s *Scanner) newLine() {
@@ -65,23 +84,24 @@ func (s *Scanner) newLine() {
 //
 // The Scanner will be initialized and the first char will be red and
 // saved in current
-func NewScanner(r *bufio.Reader, st *st.STManager, diagnostic *diagnostic.ErrorManager, tkManager *token.TokenManager) (Scanner, error) {
+func NewScanner(r *bufio.Reader) (*Scanner, error) {
 	char, _, err := r.ReadRune()
+	fmt.Printf("Red %c\n",char)
 	if err != nil {
-		return Scanner{}, err
+		return &Scanner{}, err
 	}
 	if DEBUG {
 		fmt.Println("DEBUG: Initializing Lexer")
 	}
 	sc := Scanner{
-		current:    char,
+		currentChar:    char,
 		reader:     r,
-		tkManager:  tkManager,
-		st:         st,
-		errManager: diagnostic,
+		tokens:     []token.Token{},
+		STManager:         st.NewSTManager(),
+		errManager: diagnostic.NewErrorManager(),
 	}
 	sc.transitions = GenerateTransitions(&sc)
-	return sc, nil
+	return &sc, nil
 }
 
 // reads the next char from the input reader.
@@ -104,19 +124,23 @@ func (s *Scanner) nextChar(next *rune) {
 }
 
 // The algorithm of the actual scanner
-func (s *Scanner) Scan() {
-	for s.current != 0 {
-		e, err := s.transitions.Find(s.current)
+func (s *Scanner) ScanTokens() {
+	for s.currentChar != 0 {
+		e, err := s.transitions.Find(s.currentChar)
 		if err != nil {
 			s.errManager.NewError(diagnostic.LEXICAL, err.Error())
 			return //TODO
 		}
-		e.action(s.current, &s.current)
+		e.action(s.currentChar, &s.currentChar)
 	}
 }
 
-// Returns the last token generated. If token found also returns true.
-// Internally, it checks s.tokenPos(last token gotten) and if new tokens returns it.
+// Returns Token if there is a new one. This does not remove the token from the actual list
+// Used to know what Token is next in the reading queue.
 func (s *Scanner) Token() (token.Token, bool) {
-	return s.tkManager.PopToken()
+	if len(s.tokens) == 0 || s.lastTokenRed >= len(s.tokens) {
+		return token.Token{}, false
+	}
+	s.lastTokenRed++
+	return s.tokens[s.lastTokenRed-1], true
 }

@@ -12,8 +12,8 @@ import (
 
 var DEBUG bool
 func main(){
-	_,err:=os.LookupEnv("DEBUG")
-	if err{
+	_,ok:=os.LookupEnv("DEBUG")
+	if ok{
 		debug()
 	}
 
@@ -34,22 +34,18 @@ func main(){
 		fmt.Fprintf(os.Stderr,"Error creating token file: %v\n",e)
 	}
 	defer tkFile.Close()
-	tkManager:=token.NewTokenManager(bufio.NewWriter(tkFile))
 
-	symTable:=st.CreateSTManager(os.Stdout);
-	initST(&symTable)
-	errManager:=diagnostic.NewErrorManager(os.Stderr)
-
-
-	lexer,e:=lexer.NewScanner(bufio.NewReader(file),&symTable,&errManager,tkManager)
+	scanner,e:=lexer.NewScanner(bufio.NewReader(file))
+	initST(scanner.STManager)
 	if e!=nil{
 		fmt.Fprintf(os.Stderr,"Error initializing lexer: %v\n",e)
 		return
 	}
-	lexer.Scan()
 	
-	lexer.Write()
-	errManager.Write()
+	scanner.ScanTokens()
+	scanner.WriteTokens(bufio.NewWriter(tkFile))
+	scanner.WriteErrors(os.Stderr)
+	
 }
 
 func initST(stManager *st.STManager){

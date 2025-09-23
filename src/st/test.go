@@ -6,7 +6,7 @@ import (
 
 func main() {
 	DEBUG=true
-	stManager := CreateSTManager(os.Stdout)
+	stManager := NewSTManager()
 	stManager.CreateAttribute("despl", DESC_DESPL, T_INTEGER)
 	stManager.CreateAttribute("numero de parametros", DESC_NUM_PARAM, T_INTEGER)
 	stManager.CreateAttribute("tipo de parametros", DESC_TIPO_PARAM, T_ARRAY)
@@ -63,6 +63,6 @@ func main() {
 	stManager.SetEntryAttribute(local3,"parametro",0)
 
 
-	stManager.Write(stManager.Local)
-	stManager.Write(stManager.Global)
+	stManager.Write(os.Stdout,stManager.Local)
+	stManager.Write(os.Stdout,stManager.Global)
 }
