@@ -18,7 +18,7 @@ type Scanner struct {
 	currentChar rune
 	//buffer red
 	lexeme string
-	intVal int64
+	intVal int32
 
 	//buffer input reader
 	reader *bufio.Reader

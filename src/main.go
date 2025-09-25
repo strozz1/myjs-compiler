@@ -50,7 +50,9 @@ func main() {
 
 func initST(stManager *st.STManager) {
 	stManager.ReservedWords = []string{
-		"do", "while", "if", "function", "var", "return", "break",
+		"true","false","int","float","boolean","string",
+		"null","write","read",
+		"do", "while", "if", "function", "let", "return", "void",
 	}
 	stManager.CreateAttribute("despl", "despl", st.T_INTEGER)
 	stManager.CreateAttribute("numero de parametros", "numParam", st.T_INTEGER)

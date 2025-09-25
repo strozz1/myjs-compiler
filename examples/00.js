@@ -1,8 +1,8 @@
 var int a;
 var int u;
 var int c;
-var string ejemplo := 'ejemplo';
-var boolean b := a := u; /* falta estol*/
+var string ejemplo = 'ejemplo';
+var boolean b = a = u; /* falta estol*/
 function string cadena(int a, int b,boolean k){
 	a = a + b + c;
 	return 'hola';

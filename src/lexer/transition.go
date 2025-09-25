@@ -100,10 +100,15 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		S8
 		S9
 		S10
+
+		F1
+		F2
+		F3
 	)
+	finals := []State{F1,F2,F3}
 	t := TransitionTable{
 		table:        map[State]map[rune]*TransEntry{},
-		finals:       []State{},
+		finals:       finals,
 		start:        S0,
 		currentState: S0,
 	}
@@ -148,7 +153,7 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	//Start INT LITERAL
 	t.addTransition(S0, S2, 0, matchDigit, func() {
 		sc.intVal *= 10
-		d := int64(sc.currentChar - '0')
+		d := int32(sc.currentChar - '0')
 		sc.intVal += d
 		sc.nextChar()
 	})
@@ -156,20 +161,20 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	// Cont INT LITERAL
 	t.addTransition(S2, S2, 0, matchDigit, func() {
 		sc.intVal *= 10
-		d := int64(sc.currentChar - '0')
+		d := int32(sc.currentChar - '0')
 		sc.intVal += d
 		sc.nextChar()
 	})
 
 	// END INT LITERAL
 	t.addTransition(S2, S0, 0, matchEndInt, func() {
-		value, ok := safeInt32(sc.intVal)
+		value, ok := safeInt16(sc.intVal)
 		if !ok {
 			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%d' supera el maximo permitido.", sc.intVal))
 			sc.lexeme = ""
 			return
 		}
-		sc.newToken(token.ENTERO_LIT, fmt.Sprintf("%d", value))
+		sc.newToken(token.INT_LITERAL, fmt.Sprintf("%d", value))
 	})
 
 	//BEGIN STRING_LITERAL
@@ -188,7 +193,7 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		if len(sc.lexeme)-2 > MAX_STRING {
 			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres", sc.lexeme))
 		} else {
-			sc.newToken(token.CADENA_LIT, sc.lexeme)
+			sc.newToken(token.STRING_LITERAL, sc.lexeme)
 		}
 		sc.nextChar()
 	})
@@ -252,13 +257,10 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	})
 
 	//asign
-	t.addTransition(S0, S9, ':', nil, func() {
+	t.addTransition(S0, S0, '=', nil, func() {
 		sc.nextChar()
 	})
-	t.addTransition(S9, S0, '=', nil, func() {
-		sc.newToken(token.ASIGNACION, "-")
-		sc.nextChar()
-	})
+
 	t.addTransition(S0, S0, '+', nil, func() {
 		sc.newToken(token.ARITM, "+")
 		sc.nextChar()
@@ -274,11 +276,11 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	return t
 }
 
-func safeInt32(n int64) (int32, bool) {
-	if n < math.MinInt32 || n > math.MaxInt32 {
+func safeInt16(n int32) (int16, bool) {
+	if n < math.MinInt16 || n > math.MaxInt16 {
 		return 0, false
 	}
-	return int32(n), true
+	return int16(n), true
 }
 
 var matchNotInv = func(c rune) bool {
