@@ -10,43 +10,65 @@ type TokenKind int
 var DEBUG bool
 
 const (
-	ABRIR_CORCH TokenKind = iota
-	CERRAR_CORCH
-	PUNTOYCOMA
-
+	EOF TokenKind = iota
+	BOOLEAN
+	DO
+	FLOAT
+	FUNCTION
+	IF
+	INT
+	LET
+	READ
+	RETURN
+	STRING
+	VOID
+	WHILE
+	WRITE
+	REAL_LITERAL
 	INT_LITERAL
 	STRING_LITERAL
-	REAL
-	TRUE
-	FALSE
-
+	ID
+	ASIG
+	COMA
+	PUNTOYCOMA
 	ABRIR_PAR
 	CERRAR_PAR
+	ABRIR_CORCH
+	CERRAR_CORCH
 	ARITM
-	RELAC
 	LOGICO
+	RELAC
 
-	ASIG
-	ASIG_MULT
-	ID
-	LET
+	FALSE
+	TRUE
 
-	INT
-	FLOAT
-	BOOLEAN
-	STRING
 	NULL
+)
 
-	WRITE
-	READ
+type AsigType int
 
-	DO
-	WHILE
-	FUNCTION
-	RETURN
-	VOID
-	IF
-	COMA
+const (
+	ASIG_SIMPLE AsigType = iota
+	ASIG_MULT
+)
+
+type AritType int
+
+const (
+	ARIT_PLUS AritType = iota
+	ARIT_MINUS
+)
+
+type LogicType int
+
+const (
+	LOG_AND LogicType = iota
+	LOG_NEG 
+)
+type RelType int
+const(
+	REL_NOTEQ LogicType=iota
+	REL_EQ
 )
 
 func (t TokenKind) String() string {
@@ -61,7 +83,7 @@ func (t TokenKind) String() string {
 		return "INT_LITERAL"
 	case STRING_LITERAL:
 		return "STRING_LITERAL"
-	case REAL:
+	case REAL_LITERAL:
 		return "REAL"
 	case TRUE:
 		return "TRUE"
@@ -79,8 +101,6 @@ func (t TokenKind) String() string {
 		return "LOGICO"
 	case ASIG:
 		return "ASIG"
-	case ASIG_MULT:
-		return "ASIG_MULT"
 	case ID:
 		return "ID"
 	case LET:
@@ -160,10 +180,10 @@ func From(token string) TokenKind {
 type Token struct {
 	Kind   TokenKind
 	Lexeme string
-	Attr   string
+	Attr   any
 }
 
-func NewToken(kind TokenKind, lexeme string, attr string) Token {
+func NewToken(kind TokenKind, lexeme string, attr any) Token {
 	return Token{kind, lexeme, attr}
 }
 

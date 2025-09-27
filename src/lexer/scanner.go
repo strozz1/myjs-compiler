@@ -98,24 +98,30 @@ func (s *Scanner) nextChar() {
 
 // The algorithm of the actual scanner. Saves the tokens in 's.tokens' and can be
 // retreived one by one with 's.GetToken()'.
-func (s *Scanner) Lexical() token.Token {
+func (s *Scanner) Lexical() (token.Token,bool) {
 	var ok bool = false
 	var token token.Token
 	for !ok && !s.EOF {
-		transition, err := s.transitions.Find(s.currentChar)
-		if err != nil {
-			s.errManager.NewError(diagnostic.LEXICAL, err.Error())
-			return token //TODO
+		transition, code, errVal := s.transitions.Find(s.currentChar)
+		if transition == nil {
+			s.reset()
+			s.errManager.NewError(diagnostic.K_LEXICAL, code, errVal)
+			return token,false //TODO
 		}
 		token, ok = transition.Action()
-		if ok {
+		if s.transitions.isFinal() {
 			s.tokens = append(s.tokens, token)
-			s.lexeme = ""
-			s.intVal = 0
+			s.reset()
 			break
 		}
 	}
-	return token
+	return token,true
+}
+
+func (s *Scanner) reset() {
+	s.lexeme = ""
+	s.intVal = 0
+	s.transitions.currentState = s.transitions.start
 }
 
 // Returns GetToken if there is a new one. This does not remove the token from the actual list

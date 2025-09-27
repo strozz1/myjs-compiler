@@ -16,11 +16,10 @@ func NewErrorManager()ErrorManager{
 		fmt.Printf("DEBUG: Initializing Error Manager\n")
 	}
 	return ErrorManager{currentLine: 1,errors:[]Error{}}
-
 }
 
-func (m *ErrorManager) NewError(kind ErrorKind,info string){
-	m.errors = append(m.errors, NewError(kind,m.currentLine,info))
+func (m *ErrorManager) NewError(kind ErrorKind,code ErrorCode,val any){
+	m.errors = append(m.errors, NewError(kind,code,m.currentLine,val))
 }
 
 // When Lexer detecs new line, it calls this function to notifies the ErrorManager, so when the next error occurs,

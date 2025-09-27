@@ -3,7 +3,6 @@ package lexer
 import (
 	"compiler-pdl/src/diagnostic"
 	"compiler-pdl/src/token"
-	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -36,6 +35,10 @@ type TransitionTable struct {
 	currentState State
 }
 
+func (t TransitionTable) isFinal() bool {
+	return slices.Contains(t.finals, t.currentState)
+}
+
 var transId rune = -1
 
 // Creates a new transition from currentState to nextState.
@@ -62,14 +65,10 @@ func (t *TransitionTable) addTransition(currentState State, nextState State, cha
 	trans[char] = &TransEntry{Next: nextState, Action: action, Match: match}
 }
 
-func (t *TransitionTable) Find(char rune) (*TransEntry, error) {
-	//check if we are in a final state
-	if slices.Contains(t.finals, t.currentState) {
-		t.currentState = t.start
-	}
+func (t *TransitionTable) Find(char rune) (*TransEntry, diagnostic.ErrorCode, any) {
 	transition, ok := t.table[t.currentState]
 	if !ok {
-		return &TransEntry{}, errors.New("State not found")
+		return nil, diagnostic.C_INVALID_CHAR, char
 	}
 	for r, i := range transition {
 		//if a match set r
@@ -80,10 +79,10 @@ func (t *TransitionTable) Find(char rune) (*TransEntry, error) {
 	}
 	entry, ok := transition[char]
 	if !ok {
-		return entry, fmt.Errorf("Caracter no valido '%c'", char)
+		return nil, diagnostic.C_INVALID_CHAR, char
 	}
 	t.currentState = entry.Next
-	return entry, nil
+	return entry, diagnostic.C_OK, nil
 }
 
 // Generates de transitions of the DFA for the lexer.
@@ -179,7 +178,7 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	t.addTransition(S2, S0, 0, matchEndInt, func() (token.Token, bool) {
 		value, ok := safeInt16(sc.intVal)
 		if !ok {
-			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%d' supera el maximo permitido.", sc.intVal))
+			sc.errManager.NewError(diagnostic.K_LEXICAL, diagnostic.C_ID_TOO_LONG, sc.intVal)
 			sc.lexeme = ""
 			return token.Token{}, false
 		}
@@ -201,12 +200,12 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	//END STRING LITERAL
 	t.addTransition(S3, S0, '\'', nil, func() (token.Token, bool) {
 		if len(sc.lexeme) > MAX_STRING {
-			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres", sc.lexeme))
+			sc.errManager.NewError(diagnostic.K_LEXICAL, diagnostic.C_STRING_TOO_LONG, sc.lexeme)
 			return token.Token{}, false
 		}
-		tk:=token.NewToken(token.STRING_LITERAL,sc.lexeme,sc.lexeme)
+		tk := token.NewToken(token.STRING_LITERAL, sc.lexeme, sc.lexeme)
 		sc.nextChar()
-		return tk,true
+		return tk, true
 	})
 
 	//comment
@@ -250,44 +249,45 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 
 	//curl
 	t.addTransition(S0, S0, '{', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.ABRIR_CORCH,"{","-")
+		tk := token.NewToken(token.ABRIR_CORCH, "{", "-")
 		sc.nextChar()
 		return tk, true
 	})
 	t.addTransition(S0, S0, '}', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.CERRAR_CORCH,"}","-")
+		tk := token.NewToken(token.CERRAR_CORCH, "}", "-")
 		sc.nextChar()
 		return tk, true
 	})
 	t.addTransition(S0, S0, '(', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.ABRIR_PAR,"(","-")
+		tk := token.NewToken(token.ABRIR_PAR, "(", "-")
 		sc.nextChar()
 		return tk, true
 	})
 	t.addTransition(S0, S0, ')', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.CERRAR_PAR,")","-")
+		tk := token.NewToken(token.CERRAR_PAR, ")", "-")
 		sc.nextChar()
 		return tk, true
 	})
 	t.addTransition(S0, S0, ',', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.COMA,",","-")
+		tk := token.NewToken(token.COMA, ",", "-")
 		sc.nextChar()
 		return tk, true
 	})
 	t.addTransition(S0, S0, ';', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.PUNTOYCOMA,";","-")
+		tk := token.NewToken(token.PUNTOYCOMA, ";", "-")
 		sc.nextChar()
 		return tk, true
 	})
 
 	//asign
 	t.addTransition(S0, S0, '=', nil, func() (token.Token, bool) {
+		//TODO ESTO ESTA MAL
 		sc.nextChar()
-		return token.Token{},false
+		return token.Token{}, false
 	})
 
 	t.addTransition(S0, S0, '+', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.ARITM,"+","&")
+		tk := token.NewToken(token.ARITM, "+", token.ARIT_PLUS)
 		//TODO tipo
 		sc.nextChar()
 		return tk, true
@@ -297,7 +297,7 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		return token.Token{}, false
 	})
 	t.addTransition(S8, S0, '&', nil, func() (token.Token, bool) {
-		tk:=token.NewToken(token.LOGICO,"&&","&&")
+		tk := token.NewToken(token.LOGICO, "&&", token.LOG_AND)
 		sc.nextChar()
 		return tk, true
 	})

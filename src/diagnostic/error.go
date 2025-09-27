@@ -3,35 +3,72 @@ package diagnostic
 import "fmt"
 
 type ErrorKind int
-const(
-	SINTACTICAL ErrorKind = iota
-	LEXICAL
+
+const (
+	K_SINTACTICAL ErrorKind = iota
+	K_LEXICAL
+	K_SEMANTICAL
 )
 
-type Error struct{
+type ErrorCode int
+
+const (
+	C_ID_TOO_LONG ErrorCode = iota
+	C_STRING_TOO_LONG
+	C_OK
+	C_INVALID_CHAR
+	C_INT_TOO_BIG
+	C_FLOAT_TOO_BIG
+)
+
+type Error struct {
 	kind ErrorKind
+	code ErrorCode
 	line int
-	info string
+	val  any
 }
 
-//Creates new error from kind and line number
-func NewError(kind ErrorKind,line int,info string)Error{
-	return Error{kind,line,info}
+// Creates new error from kind and line number
+func NewError(kind ErrorKind, code ErrorCode, line int, val any) Error {
+	return Error{kind, code, line, val}
 }
 
-func (e *Error) ToString()string{
-	return fmt.Sprintf("ERROR %v en linea %v: %v",e.kind.string(),e.line,e.info)
+func (e *Error) ToString() string {
+	return fmt.Sprintf("ERROR %v(%d) en la LINEA %v: %v", e.kind.string(), e.code, e.line, e.code.string(e.val))
 }
 
-func (k ErrorKind) string()string{
+func (k ErrorKind) string() string {
 	var str string
-	switch k{
-	case LEXICAL:
-		str="LEXICO"
-	case SINTACTICAL:
-		str="SINTACTICO"
+	switch k {
+	case K_LEXICAL:
+		str = "LEXICO"
+	case K_SINTACTICAL:
+		str = "SINTACTICO"
+	case K_SEMANTICAL:
+		str = "SEMANTICO"
 	default:
-		str="DESCONOCIDO"
+		str = "DESCONOCIDO"
+	}
+	return str
+}
+
+func (c ErrorCode) string(val any) string {
+	var str string
+	switch c {
+	case C_ID_TOO_LONG:
+		str = fmt.Sprintf("El identificador '%s' supera el limite maximo de caracteres", val)
+	case C_STRING_TOO_LONG:
+		str = fmt.Sprintf("La cadena '%s' supera el limite maximo de caracteres", val)
+	case C_INVALID_CHAR:
+		str = fmt.Sprintf("Caracter invalido: '%c'", val)
+	case C_INT_TOO_BIG:
+		str = fmt.Sprintf("Valor entero '%d' supera el limite.", val)
+	case C_FLOAT_TOO_BIG:
+		str = fmt.Sprintf("Valor real '%f' supera el limite.", val)
+	case C_OK:
+		str = "OK"
+	default:
+		str = "interal error"
 	}
 	return str
 }
