@@ -36,7 +36,7 @@ type Scanner struct {
 	//Error Manager
 	errManager diagnostic.ErrorManager
 
-	eof bool
+	EOF bool
 }
 
 // Creates a new scanner.
@@ -63,15 +63,6 @@ func NewScanner(r *bufio.Reader) (*Scanner, error) {
 	return &sc, nil
 }
 
-// Creates new token with the current buffer string.
-// resets the buffer 'lexeme' & 'intVal' for next tokens.
-func (sc *Scanner) newToken(d token.TokenKind, attr string) {
-	tk := token.NewToken(d, sc.lexeme, attr)
-	sc.tokens = append(sc.tokens, tk)
-	sc.lexeme = ""
-	sc.intVal = 0
-}
-
 // Check if 'token' is a reserved keyword
 func (s *Scanner) isReserved(token string) bool {
 	return slices.Contains(s.STManager.ReservedWords, token)
@@ -92,7 +83,7 @@ func (s *Scanner) nextChar() {
 	char, _, err := s.reader.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			s.eof = true
+			s.EOF = true
 			if DEBUG {
 				fmt.Println("DEBUG: EOF found. Finished reading input file")
 			}
@@ -107,15 +98,24 @@ func (s *Scanner) nextChar() {
 
 // The algorithm of the actual scanner. Saves the tokens in 's.tokens' and can be
 // retreived one by one with 's.GetToken()'.
-func (s *Scanner) ScanTokens() {
-	for !s.eof {
+func (s *Scanner) Lexical() token.Token {
+	var ok bool = false
+	var token token.Token
+	for !ok && !s.EOF {
 		transition, err := s.transitions.Find(s.currentChar)
 		if err != nil {
 			s.errManager.NewError(diagnostic.LEXICAL, err.Error())
-			return //TODO
+			return token //TODO
 		}
-		transition.Action()
+		token, ok = transition.Action()
+		if ok {
+			s.tokens = append(s.tokens, token)
+			s.lexeme = ""
+			s.intVal = 0
+			break
+		}
 	}
+	return token
 }
 
 // Returns GetToken if there is a new one. This does not remove the token from the actual list

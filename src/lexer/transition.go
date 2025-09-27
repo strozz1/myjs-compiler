@@ -15,7 +15,7 @@ const MAX_STRING = 128
 type Match func(r rune) bool
 
 // Defines a Semantical Action for the lexer to perform
-type Action func()
+type Action func() (token.Token, bool)
 type State int
 
 // Defines an Entry for the transition table.
@@ -105,7 +105,7 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		F2
 		F3
 	)
-	finals := []State{F1,F2,F3}
+	finals := []State{F1, F2, F3}
 	t := TransitionTable{
 		table:        map[State]map[rune]*TransEntry{},
 		finals:       finals,
@@ -114,165 +114,194 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	}
 
 	//delimiters
-	t.addTransition(S0, S0, 0, matchDel, func() {
+	t.addTransition(S0, S0, 0, matchDel, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
 
 	//new line
-	t.addTransition(S0, S0, '\n', nil, func() {
+	t.addTransition(S0, S0, '\n', nil, func() (token.Token, bool) {
 		sc.newLine()
 		sc.nextChar()
+		return token.Token{}, false
 	})
 	//Carriage
-	t.addTransition(S0, S0, '\r', nil, func() {
+	t.addTransition(S0, S0, '\r', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
 
 	// Start of ID
-	t.addTransition(S0, S1, 0, matchIdFirst, func() {
+	t.addTransition(S0, S1, 0, matchIdFirst, func() (token.Token, bool) {
 		sc.lexeme = string(append([]rune(sc.lexeme), sc.currentChar))
 		sc.nextChar()
+		return token.Token{}, false
 	})
 
 	// Cont of ID
-	t.addTransition(S1, S1, 0, matchId, func() {
+	t.addTransition(S1, S1, 0, matchId, func() (token.Token, bool) {
 		sc.lexeme = string(append([]rune(sc.lexeme), sc.currentChar))
 		sc.nextChar()
+		return token.Token{}, false
 	})
 
 	// END of ID
-	t.addTransition(S1, S0, 0, matchEndId, func() {
+	t.addTransition(S1, S0, 0, matchEndId, func() (token.Token, bool) {
+		var tk token.Token
 		if sc.isReserved(sc.lexeme) {
-			sc.newToken(token.From(sc.lexeme), "-")
+			tk = token.NewToken(token.ID, sc.lexeme, "-")
 		} else {
-			sc.newToken(token.ID, "-")
+			tk = token.NewToken(token.ID, sc.lexeme, "-")
 			//TODO: check ST
 		}
+		return tk, true
 	})
 
 	//Start INT LITERAL
-	t.addTransition(S0, S2, 0, matchDigit, func() {
+	t.addTransition(S0, S2, 0, matchDigit, func() (token.Token, bool) {
 		sc.intVal *= 10
 		d := int32(sc.currentChar - '0')
 		sc.intVal += d
 		sc.nextChar()
+		return token.Token{}, false
 	})
 
 	// Cont INT LITERAL
-	t.addTransition(S2, S2, 0, matchDigit, func() {
+	t.addTransition(S2, S2, 0, matchDigit, func() (token.Token, bool) {
 		sc.intVal *= 10
 		d := int32(sc.currentChar - '0')
 		sc.intVal += d
 		sc.nextChar()
+		return token.Token{}, false
 	})
 
 	// END INT LITERAL
-	t.addTransition(S2, S0, 0, matchEndInt, func() {
+	t.addTransition(S2, S0, 0, matchEndInt, func() (token.Token, bool) {
 		value, ok := safeInt16(sc.intVal)
 		if !ok {
 			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("el literal entero '%d' supera el maximo permitido.", sc.intVal))
 			sc.lexeme = ""
-			return
+			return token.Token{}, false
 		}
-		sc.newToken(token.INT_LITERAL, fmt.Sprintf("%d", value))
+		tk := token.NewToken(token.INT_LITERAL, "", fmt.Sprintf("%d", value))
+		return tk, true
 	})
 
 	//BEGIN STRING_LITERAL
-	t.addTransition(S0, S3, '\'', nil, func() {
-		sc.appendChar()
+	t.addTransition(S0, S3, '\'', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
 	//CONT STRING LITERAL
-	t.addTransition(S3, S3, 0, matchNotQuote, func() {
+	t.addTransition(S3, S3, 0, matchNotQuote, func() (token.Token, bool) {
 		sc.appendChar()
 		sc.nextChar()
+		return token.Token{}, false
 	})
 	//END STRING LITERAL
-	t.addTransition(S3, S0, '\'', nil, func() {
-		sc.appendChar()
-		if len(sc.lexeme)-2 > MAX_STRING {
+	t.addTransition(S3, S0, '\'', nil, func() (token.Token, bool) {
+		if len(sc.lexeme) > MAX_STRING {
 			sc.errManager.NewError(diagnostic.LEXICAL, fmt.Sprintf("La cadena literal %v supera el limite maximo de caracteres", sc.lexeme))
-		} else {
-			sc.newToken(token.STRING_LITERAL, sc.lexeme)
+			return token.Token{}, false
 		}
+		tk:=token.NewToken(token.STRING_LITERAL,sc.lexeme,sc.lexeme)
 		sc.nextChar()
+		return tk,true
 	})
 
 	//comment
-	t.addTransition(S0, S4, '/', nil, func() {
+	t.addTransition(S0, S4, '/', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
-	t.addTransition(S4, S5, '*', nil, func() {
+	t.addTransition(S4, S5, '*', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
-	t.addTransition(S5, S6, 0, matchNotStar, func() {
+	t.addTransition(S5, S6, 0, matchNotStar, func() (token.Token, bool) {
 		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
 		sc.nextChar()
+		return token.Token{}, false
 	})
-	t.addTransition(S6, S6, 0, matchNotStar, func() {
+	t.addTransition(S6, S6, 0, matchNotStar, func() (token.Token, bool) {
 		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
 		sc.nextChar()
+		return token.Token{}, false
 	})
-	t.addTransition(S6, S7, '*', nil, func() {
+	t.addTransition(S6, S7, '*', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
-	t.addTransition(S7, S6, 0, matchNotInv, func() {
+	t.addTransition(S7, S6, 0, matchNotInv, func() (token.Token, bool) {
 		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
 		sc.nextChar()
+		return token.Token{}, false
 	})
-	t.addTransition(S7, S0, '/', nil, func() {
+	t.addTransition(S7, S0, '/', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
 
 	//curl
-	t.addTransition(S0, S0, '{', nil, func() {
-		sc.newToken(token.ABRIR_PAR, "-")
+	t.addTransition(S0, S0, '{', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.ABRIR_CORCH,"{","-")
 		sc.nextChar()
+		return tk, true
 	})
-	t.addTransition(S0, S0, '}', nil, func() {
-		sc.newToken(token.CERRAR_PAR, "-")
+	t.addTransition(S0, S0, '}', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.CERRAR_CORCH,"}","-")
 		sc.nextChar()
+		return tk, true
 	})
-	t.addTransition(S0, S0, '(', nil, func() {
-		sc.newToken(token.ABRIR_PAR, "-")
+	t.addTransition(S0, S0, '(', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.ABRIR_PAR,"(","-")
 		sc.nextChar()
+		return tk, true
 	})
-	t.addTransition(S0, S0, ')', nil, func() {
-		sc.newToken(token.CERRAR_PAR, "-")
+	t.addTransition(S0, S0, ')', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.CERRAR_PAR,")","-")
 		sc.nextChar()
+		return tk, true
 	})
-	t.addTransition(S0, S0, ',', nil, func() {
-		sc.newToken(token.COMA, "-")
+	t.addTransition(S0, S0, ',', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.COMA,",","-")
 		sc.nextChar()
+		return tk, true
 	})
-	t.addTransition(S0, S0, ';', nil, func() {
-		sc.newToken(token.PUNTOYCOMA, "-")
+	t.addTransition(S0, S0, ';', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.PUNTOYCOMA,";","-")
 		sc.nextChar()
+		return tk, true
 	})
 
 	//asign
-	t.addTransition(S0, S0, '=', nil, func() {
+	t.addTransition(S0, S0, '=', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{},false
 	})
 
-	t.addTransition(S0, S0, '+', nil, func() {
-		sc.newToken(token.ARITM, "+")
+	t.addTransition(S0, S0, '+', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.ARITM,"+","&")
+		//TODO tipo
 		sc.nextChar()
+		return tk, true
 	})
-	t.addTransition(S0, S8, '&', nil, func() {
+	t.addTransition(S0, S8, '&', nil, func() (token.Token, bool) {
 		sc.nextChar()
+		return token.Token{}, false
 	})
-	t.addTransition(S8, S0, '&', nil, func() {
-		sc.newToken(token.LOGICO, "&")
+	t.addTransition(S8, S0, '&', nil, func() (token.Token, bool) {
+		tk:=token.NewToken(token.LOGICO,"&&","&&")
 		sc.nextChar()
+		return tk, true
 	})
-	t.debugPrint()
+	//t.debugPrint()
 	return t
 }
 

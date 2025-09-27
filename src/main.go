@@ -43,7 +43,9 @@ func main() {
 		return
 	}
 
-	scanner.ScanTokens()
+	for !scanner.EOF{
+		scanner.Lexical()
+	}
 	scanner.WriteTokens(bufio.NewWriter(tkFile))
 	scanner.WriteErrors(os.Stderr)
 }
