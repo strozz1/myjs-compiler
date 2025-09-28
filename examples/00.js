@@ -1,8 +1,8 @@
-var int a;
-var int u;
-var int c;
-var string ejemplo = 'ejemplo';
-var boolean b = a = u; /* falta estol*/
+let int a;
+let int u;
+let int c;
+let string ejemplo = 'ejemplo';
+let boolean b = a = u; /* falta estol*/
 function string cadena(int a, int b,boolean k){
 	a = a + b + c;
 	return 'hola';
@@ -18,16 +18,16 @@ if ( a == u && c == a){
 }
 
 function void comoEstas (boolean a,boolean c, boolean d, boolean n,string temp){
-	var int jul;
-	varglobal = 0;
+	let int jul;
+	letglobal = 0;
 	if (a == c == d == n && temp == ejemplo)
 		output (temp);
 		output 'comoEstas';
 }
 comoEstas(b,b,b,b,ejemplo);
 
-var string hola;
-var boolean falso = 1 == 2;
+let string hola;
+let boolean falso = 1 == 2;
 
 function int suma(int a,int b){
 	return a + b;
@@ -38,7 +38,7 @@ function boolean and(boolean a, boolean b){
 	return a && b;
 }
 p = suma(a,u);
-var boolean ejemplo2 = and(falso,and(b,b));
+let boolean ejemplo2 = and(falso,and(b,b));
 and(ejemplo2,b);
-var a = 23232f33
+let a = 23232f33
 
