@@ -19,7 +19,7 @@ type Scanner struct {
 	//buffer red
 	lexeme string
 
-	intVal int64
+	intVal     int64
 	decimalPos int
 
 	//buffer input reader
@@ -29,9 +29,6 @@ type Scanner struct {
 	transitions TransitionTable
 	//tokens
 	tokens []token.Token
-
-	//last token red from outsiders(not last token created)
-	lastTokenRed int
 
 	//SymbolTable manager
 	STManager *st.STManager
@@ -47,7 +44,6 @@ type Scanner struct {
 // saved in current
 func NewScanner(r *bufio.Reader) (*Scanner, error) {
 	char, _, err := r.ReadRune()
-	fmt.Printf("Red %c\n", char)
 	if err != nil {
 		return &Scanner{}, err
 	}
@@ -100,40 +96,33 @@ func (s *Scanner) nextChar() {
 
 // The algorithm of the actual scanner. Saves the tokens in 's.tokens' and can be
 // retreived one by one with 's.GetToken()'.
-func (s *Scanner) Lexical() (token.Token,bool) {
+func (s *Scanner) Lexical() (token.Token, bool) {
 	var ok bool = false
 	var token token.Token
 	for !ok && !s.EOF {
 		transition, code, errVal := s.transitions.Find(s.currentChar)
 		if transition == nil {
-			s.reset()
 			s.errManager.NewError(diagnostic.K_LEXICAL, code, errVal)
-			return token,false //TODO
+			s.reset()
+			s.nextChar()
+			return token, false //TODO
 		}
 		token, ok = transition.Action()
 		if s.transitions.isFinal() {
-			s.tokens = append(s.tokens, token)
+			if ok {
+				s.tokens = append(s.tokens, token)
+			}
 			s.reset()
 			break
 		}
 	}
-	return token,true
+	return token, true
 }
 
 func (s *Scanner) reset() {
 	s.lexeme = ""
 	s.intVal = 0
 	s.transitions.currentState = s.transitions.start
-}
-
-// Returns GetToken if there is a new one. This does not remove the token from the actual list
-// Used to know what GetToken is next in the reading queue.
-func (s *Scanner) GetToken() (token.Token, bool) {
-	if len(s.tokens) == 0 || s.lastTokenRed >= len(s.tokens) {
-		return token.Token{}, false
-	}
-	s.lastTokenRed++
-	return s.tokens[s.lastTokenRed-1], true
 }
 
 // WriteTokens all the tokens with the 'Writer' parameter. The output format follows the

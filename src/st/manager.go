@@ -110,6 +110,10 @@ func (m *STManager) CreateLocalTable(name string) {
 		fmt.Printf("DEBUG: Local table created: [%v]\n\r", name)
 	}
 }
+func (m *STManager) NewScope(name string){
+	//st:=createST(name)
+	
+}
 
 // Returns if the name already exists in the attribute list
 func (m *STManager) containsAttribute(name string) bool {

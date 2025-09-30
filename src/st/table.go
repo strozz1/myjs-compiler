@@ -9,6 +9,8 @@ type SymbolTable struct {
 	id     int
 	name   string
 	table  map[string]*Entry
+	inner *SymbolTable
+	parent *SymbolTable
 }
 
 

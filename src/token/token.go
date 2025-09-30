@@ -192,6 +192,6 @@ func (tk *Token) Write(w *bufio.Writer) {
 	if DEBUG {
 		fmt.Fprintf(w, "<%v, %v>\n", tk.Kind.String(), tk.Attr)
 	} else {
-		fmt.Fprintf(w, "<%v, %v>\n", tk.Kind, tk.Attr)
+		fmt.Fprintf(w, "<%d, %v>\n", tk.Kind, tk.Attr)
 	}
 }

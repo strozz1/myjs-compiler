@@ -8,7 +8,7 @@ import (
 	"slices"
 )
 
-const MAX_STRING = 128
+const MAX_STRING = 64
 
 // Defines a Match for the transition
 type Match func(r rune) bool
@@ -102,7 +102,6 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		S11
 		S12
 		S13
-
 		//Finals
 		F0
 		F1
@@ -204,8 +203,8 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	t.addTransition(S5, F5, 0, matchNotDotOrDigit, func() (token.Token, bool) {
 		value, ok := safeInt16(sc.intVal)
 		if !ok {
-			sc.errManager.NewError(diagnostic.K_LEXICAL, diagnostic.C_ID_TOO_LONG, sc.intVal)
-			sc.lexeme = ""
+			sc.errManager.NewError(diagnostic.K_LEXICAL, diagnostic.C_INT_TOO_BIG, sc.intVal)
+			sc.reset()
 			return token.Token{}, false
 		}
 		tk := token.NewToken(token.INT_LITERAL, fmt.Sprintf("%d", value), fmt.Sprintf("%d", value))
@@ -213,12 +212,12 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	})
 
 	t.addTransition(S5, S9, '.', nil, func() (token.Token, bool) {
-		sc.decimalPos+=1
+		sc.decimalPos =0
 		sc.nextChar()
 		return token.Token{}, false
 	})
 	t.addTransition(S9, S9, 0, matchDigit, func() (token.Token, bool) {
-		sc.decimalPos+=1
+		sc.decimalPos += 1
 		sc.intVal *= 10
 		d := int64(sc.currentChar - '0')
 		sc.intVal += d
@@ -228,13 +227,14 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 	//float
 	t.addTransition(S9, F8, 0, matchNotDigit, func() (token.Token, bool) {
 		//TODO FLOAT
-		value, ok := safeInt16(sc.intVal)
+		var val float64 = float64(sc.intVal) * math.Pow(10.0,float64(-sc.decimalPos))
+		value, ok := safeFloat32(val)
 		if !ok {
-			sc.errManager.NewError(diagnostic.K_LEXICAL, diagnostic.C_ID_TOO_LONG, sc.intVal)
-			sc.lexeme = ""
+			sc.errManager.NewError(diagnostic.K_LEXICAL, diagnostic.C_FLOAT_TOO_BIG, val)
+			sc.reset()
 			return token.Token{}, false
 		}
-		tk := token.NewToken(token.REAL_LITERAL, fmt.Sprintf("%d", value), fmt.Sprintf("%d", value))
+		tk := token.NewToken(token.REAL_LITERAL, fmt.Sprintf("%f", value), fmt.Sprintf("%f", value))
 		return tk, true
 	})
 
@@ -249,21 +249,21 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		sc.nextChar()
 		return token.Token{}, false
 	})
-	t.addTransition(S7,S8,'\\',nil,func()(token.Token,bool){
-		sc.appendChar()
+	t.addTransition(S7, S8, '\\', nil, func() (token.Token, bool) {
 		sc.nextChar()
-		return token.Token{},false
+		return token.Token{}, false
 	})
 	//scape
-	t.addTransition(S8,S7,0,matchScape,func()(token.Token,bool){
-		sc.appendChar()
+	t.addTransition(S8, S7, 0, matchScape, func() (token.Token, bool) {
+		sc.lexeme += fmt.Sprintf("\\%c", sc.currentChar)
 		sc.nextChar()
-		return token.Token{},false
+		return token.Token{}, false
 	})
 	//END STRING LITERAL
 	t.addTransition(S7, F7, '\'', nil, func() (token.Token, bool) {
 		if len(sc.lexeme) > MAX_STRING {
 			sc.errManager.NewError(diagnostic.K_LEXICAL, diagnostic.C_STRING_TOO_LONG, sc.lexeme)
+			sc.reset()
 			return token.Token{}, false
 		}
 		tk := token.NewToken(token.STRING_LITERAL, sc.lexeme, sc.lexeme)
@@ -291,14 +291,12 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		if sc.isReserved(sc.lexeme) {
 			tk = token.NewToken(token.From(sc.lexeme), sc.lexeme, "-")
 		} else {
-			tk = token.NewToken(token.ID, sc.lexeme, "-")
+			sc.STManager.AddGlobalEntry(sc.lexeme)
+			tk = token.NewToken(token.ID, sc.lexeme, 1)
 			//TODO: check ST
 		}
 		return tk, true
 	})
-
-
-
 
 	//comment
 	t.addTransition(S0, S10, '/', nil, func() (token.Token, bool) {
@@ -320,7 +318,7 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		sc.nextChar()
 		return token.Token{}, false
 	})
-	t.addTransition(S12, S11, 0, matchNotInv, func() (token.Token, bool) {
+	t.addTransition(S12, S11, 0, matchNotDash, func() (token.Token, bool) {
 		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
@@ -331,7 +329,6 @@ func GenerateTransitions(sc *Scanner) TransitionTable {
 		sc.nextChar()
 		return token.Token{}, false
 	})
-
 
 	//curl
 	t.addTransition(S0, F10, '{', nil, func() (token.Token, bool) {
@@ -396,7 +393,14 @@ func safeInt16(n int64) (int16, bool) {
 	return int16(n), true
 }
 
-var matchNotInv = func(c rune) bool {
+func safeFloat32(n float64) (float32, bool) {
+	if n < math.SmallestNonzeroFloat32 || n > math.MaxFloat32 {
+		return 0, false
+	}
+	return float32(n), true
+}
+
+var matchNotDash = func(c rune) bool {
 	return c != '/'
 }
 var matchNotStar = func(c rune) bool {
@@ -421,7 +425,7 @@ var matchDigit = func(c rune) bool {
 
 // match delimiters
 var matchDel = func(c rune) bool {
-	return c == ' ' || c == '\t' || c == '\n' || c=='\r'
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r'
 }
 var matchNotEq = func(c rune) bool {
 	return c != '='
@@ -431,11 +435,12 @@ var matchNotDotOrDigit = func(c rune) bool {
 }
 
 var matchNotDigit = func(c rune) bool {
-	return (c < '0' && c > '0')
+	return !(c >= '0' && c <= '9')
 }
-var matchScape = func(c rune)bool{
-	return c=='n' || c=='t' || c=='r'
+var matchScape = func(c rune) bool {
+	return c == 'n' || c == 't' || c == 'r'
 }
+
 func (m *TransitionTable) debugPrint() {
 	if DEBUG {
 		fmt.Printf("DEBUG: Printing transition table\n")

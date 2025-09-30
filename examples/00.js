@@ -1,4 +1,5 @@
-let int a;
+/*d*/
+let int a=2767.3f;
 let int u;
 let int c;
 let string ejemplo = 'ejemplo';
