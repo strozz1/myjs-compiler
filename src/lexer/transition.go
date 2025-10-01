@@ -86,7 +86,7 @@ func (t *TransitionTable) Find(char rune) (*TransEntry, diagnostic.ErrorCode, an
 }
 
 // Generates de transitions of the DFA for the lexer.
-func GenerateTransitions(sc *Scanner) TransitionTable {
+func GenerateTransitions(sc *Lexer) TransitionTable {
 	const (
 		S0 State = iota
 		S1

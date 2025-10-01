@@ -13,7 +13,7 @@ import (
 
 var DEBUG bool
 
-type Scanner struct {
+type Lexer struct {
 	//currentChar char red
 	currentChar rune
 	//buffer red
@@ -38,19 +38,19 @@ type Scanner struct {
 	EOF bool
 }
 
-// Creates a new scanner.
-// Returns a scanner or error if failed to do so.
-// The Scanner will be initialized and the first char will be red and
+// Creates a new lexer.
+// Returns a lexer or error if failed to do so.
+// The Lexer will be initialized and the first char will be red and
 // saved in current
-func NewScanner(r *bufio.Reader) (*Scanner, error) {
+func NewLexer(r *bufio.Reader) (*Lexer, error) {
 	char, _, err := r.ReadRune()
 	if err != nil {
-		return &Scanner{}, err
+		return &Lexer{}, err
 	}
 	if DEBUG {
 		fmt.Println("DEBUG: Initializing Lexer")
 	}
-	sc := Scanner{
+	sc := Lexer{
 		currentChar: char,
 		reader:      r,
 		tokens:      []token.Token{},
@@ -62,22 +62,22 @@ func NewScanner(r *bufio.Reader) (*Scanner, error) {
 }
 
 // Check if 'token' is a reserved keyword
-func (s *Scanner) isReserved(token string) bool {
+func (s *Lexer) isReserved(token string) bool {
 	return slices.Contains(s.STManager.ReservedWords, token)
 }
 
 // Append current char to current token lexeme
-func (s *Scanner) appendChar() {
+func (s *Lexer) appendChar() {
 	s.lexeme = string(append([]rune(s.lexeme), s.currentChar))
 }
 
-func (s *Scanner) newLine() {
+func (s *Lexer) newLine() {
 	s.errManager.NewLine()
 }
 
 // reads the next char from the input reader.
 // Sets the value to the rune pointer
-func (s *Scanner) nextChar() {
+func (s *Lexer) nextChar() {
 	char, _, err := s.reader.ReadRune()
 	if err != nil {
 		if err == io.EOF {
@@ -94,9 +94,9 @@ func (s *Scanner) nextChar() {
 	s.currentChar = char
 }
 
-// The algorithm of the actual scanner. Saves the tokens in 's.tokens' and can be
+// The algorithm of the actual lexer. Saves the tokens in 's.tokens' and can be
 // retreived one by one with 's.GetToken()'.
-func (s *Scanner) Lexical() (token.Token, bool) {
+func (s *Lexer) Lexical() (token.Token, bool) {
 	var ok bool = false
 	var token token.Token
 	for !ok && !s.EOF {
@@ -119,7 +119,7 @@ func (s *Scanner) Lexical() (token.Token, bool) {
 	return token, true
 }
 
-func (s *Scanner) reset() {
+func (s *Lexer) reset() {
 	s.lexeme = ""
 	s.intVal = 0
 	s.transitions.currentState = s.transitions.start
@@ -127,7 +127,7 @@ func (s *Scanner) reset() {
 
 // WriteTokens all the tokens with the 'Writer' parameter. The output format follows the
 // convention described in PDL subject.
-func (s *Scanner) WriteTokens(w *bufio.Writer) {
+func (s *Lexer) WriteTokens(w *bufio.Writer) {
 	if DEBUG {
 		fmt.Printf("DEBUG: Writting %v tokens to file\n", len(s.tokens))
 	}
@@ -138,6 +138,6 @@ func (s *Scanner) WriteTokens(w *bufio.Writer) {
 }
 
 // Write lexical errors with the specified Writer
-func (s *Scanner) WriteErrors(w io.Writer) {
+func (s *Lexer) WriteErrors(w io.Writer) {
 	s.errManager.Write(w)
 }

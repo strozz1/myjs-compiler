@@ -6,27 +6,52 @@ import (
 	"os"
 )
 
-type LexemeType string
+type LexemeKind int
 
 // Defines all the possible types of a lexeme.
 // The 'LEXEME NONE' represents a lexeme that either hasn't been asigned yet
 // or that it doesn't have a type.
 const (
-	LEXEME_FUNCTION  = "funcion"
-	LEXEME_PROCEDURE = "procedimiento"
-	LEXEME_INTEGER   = "entero"
-	LEXEME_STRING    = "cadena"
-	LEXEME_REAL      = "real"
-	LEXEME_LOGIC     = "logico"
-	LEXEME_POINTER   = "puntero"
-	LEXEME_VECTOR    = "vector"
-	LEXEME_NONE      = "none"
+	LEXEME_NONE LexemeKind = iota
+	LEXEME_FUNCTION
+	LEXEME_PROCEDURE
+	LEXEME_INTEGER
+	LEXEME_STRING
+	LEXEME_REAL
+	LEXEME_LOGIC
+	LEXEME_POINTER
+	LEXEME_VECTOR
 )
 
+func (l LexemeKind) String() string {
+	var str string
+	switch l {
+	case LEXEME_FUNCTION:
+		str = "funcion"
+	case LEXEME_PROCEDURE:
+		str = "procedimiento"
+	case LEXEME_INTEGER:
+		str = "entero"
+	case LEXEME_STRING:
+		str = "cadena"
+	case LEXEME_REAL:
+		str = "real"
+	case LEXEME_LOGIC:
+		str = "logico"
+	case LEXEME_POINTER:
+		str = "puntero"
+	case LEXEME_VECTOR:
+		str = "vector"
+	default:
+		str = "indefinido"
+	}
+	return str
+}
+
 type Entry struct {
-	Lexeme     string                //lexeme
-	Type       LexemeType            //lexeme type
-	Id         int                   //id of Entry
+	id         int                   //id of Entry
+	lexeme     string                //lexeme
+	kind       LexemeKind            //lexeme kind
 	Attributes map[string]*Attribute //attribute list
 }
 
@@ -37,34 +62,25 @@ type Entry struct {
 func NewEntry(lex string) *Entry {
 	return &Entry{
 		Attributes: map[string]*Attribute{},
-		Lexeme:     lex,
-		Type:       LEXEME_NONE,
+		lexeme:     lex,
+		kind:       LEXEME_NONE,
 	}
 
 }
 
 // sets the type of the lexeme
 // IF an invalid lexem type is provided, an error is returned
-func (e *Entry) SetType(t LexemeType) error {
+func (e *Entry) SetType(t LexemeKind) error {
 	switch t {
 	case LEXEME_FUNCTION:
-		break
 	case LEXEME_PROCEDURE:
-		break
 	case LEXEME_INTEGER:
-		break
 	case LEXEME_STRING:
-		break
 	case LEXEME_REAL:
-		break
 	case LEXEME_LOGIC:
-		break
 	case LEXEME_POINTER:
-		break
 	case LEXEME_VECTOR:
-		break
 	case LEXEME_NONE:
-		break
 	default:
 		{
 			if DEBUG {
@@ -73,20 +89,20 @@ func (e *Entry) SetType(t LexemeType) error {
 			return fmt.Errorf("Error: Invalid Lexem type: [%v]", t)
 		}
 	}
-	e.Type = t
+	e.kind = t
 	return nil
 }
 
 // Writes the SymbolEntry from the ST to the specified Writer with
 // PDL specified format
 func (e *Entry) Write(w io.Writer) {
-	fmt.Fprintf(w, "* LEXEMA: '%v'\r\n", e.Lexeme)
+	fmt.Fprintf(w, "* LEXEMA: '%v'\r\n", e.lexeme)
 	fmt.Fprintln(w, "  Atributos:")
 	fmt.Fprintf(w, "    + Tipo: ")
-	if e.Type == LEXEME_NONE {
+	if e.kind == LEXEME_NONE {
 		fmt.Fprintf(w, "'-'")
 	} else {
-		fmt.Fprintf(w, "'%v'", e.Type)
+		fmt.Fprintf(w, "'%v'", e.kind.String())
 	}
 	fmt.Fprintln(w)
 	for _, at := range e.Attributes {
@@ -109,7 +125,7 @@ func (e *Entry) SetAttributeValue(name string, value any) {
 	switch attribute.Type {
 	case T_STRING:
 		{
-			attribute.StringVal = fmt.Sprintf("%v", value)
+			attribute.stringVal = fmt.Sprintf("%v", value)
 			break
 		}
 	case T_INTEGER:
@@ -121,7 +137,7 @@ func (e *Entry) SetAttributeValue(name string, value any) {
 					return
 				}
 			}
-			attribute.IntVal = v
+			attribute.intVal = v
 			break
 		}
 	case T_ARRAY:
@@ -133,7 +149,7 @@ func (e *Entry) SetAttributeValue(name string, value any) {
 					return
 				}
 			}
-			attribute.ArrayVal = v
+			attribute.arrayVal = v
 		}
 	default:
 		if DEBUG {
@@ -141,14 +157,14 @@ func (e *Entry) SetAttributeValue(name string, value any) {
 			return
 		}
 	}
-	attribute.HasValue = true
+	attribute.hasValue = true
 }
 
 // Adds an attribute to the Entry.
 // Returns error if the attribute is already present
 func (e *Entry) AddAtribute(name string, a Attribute) error {
 	if e.containsAttr(name) {
-		return fmt.Errorf("Error: Attribute '%v' already exists for the entry [%v]", name, e.Lexeme)
+		return fmt.Errorf("Error: Attribute '%v' already exists for the entry [%v]", name, e.lexeme)
 	}
 	e.Attributes[name] = &a
 	return nil

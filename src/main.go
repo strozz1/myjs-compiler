@@ -36,24 +36,35 @@ func main() {
 	}
 	defer tkFile.Close()
 
-	scanner, e := lexer.NewScanner(bufio.NewReader(file))
-	initST(scanner.STManager)
+	lexer, e := lexer.NewLexer(bufio.NewReader(file))
+	initST(lexer.STManager)
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing lexer: %v\n", e)
 		return
 	}
 
-	for !scanner.EOF{
-		scanner.Lexical()
+	for !lexer.EOF{
+		lexer.Lexical()
 	}
-	scanner.WriteTokens(bufio.NewWriter(tkFile))
-	scanner.WriteErrors(os.Stderr)
+	lexer.WriteTokens(bufio.NewWriter(tkFile))
+	lexer.WriteErrors(os.Stderr)
 }
+
+// PREDEFINED ATTRIBUTES
+const (
+	DESC_DESPL        = "Despl"       // relative offset
+	DESC_NUM_PARAM    = "numParam"    //num of params
+	DESC_TIPO_PARAM   = "TipoParam"   // type of params
+	DESC_MODO_PARAM   = "ModoParam"   // param mode
+	DESC_TIPO_RETORNO = "TipoRetorno" // return type
+	DESC_ETIQ_FUNCION = "EtiqFuncion" // function label
+	DESC_PARAM        = "Param"       // param
+)
+
 
 func initST(stManager *st.STManager) {
 	stManager.ReservedWords = []string{
-		"true","false","int","float","boolean","string",
-		"null","write","read",
+		"true","false","int","float","boolean","string","write","read",
 		"do", "while", "if", "function", "let", "return", "void",
 	}
 	stManager.CreateAttribute("despl", "despl", st.T_INTEGER)
@@ -65,7 +76,6 @@ func initST(stManager *st.STManager) {
 	stManager.CreateAttribute("parametro", "param", st.T_INTEGER)
 	stManager.CreateAttribute("dimension", "dimension", st.T_INTEGER)
 	stManager.CreateAttribute("elem", "elem", st.T_STRING)
-
 }
 
 func debug() {
