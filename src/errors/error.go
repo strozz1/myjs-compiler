@@ -1,4 +1,4 @@
-package diagnostic
+package errors
 
 import "fmt"
 
@@ -13,8 +13,7 @@ const (
 type ErrorCode int
 
 const (
-	C_ID_TOO_LONG ErrorCode = iota
-	C_STRING_TOO_LONG
+	C_STRING_TOO_LONG ErrorCode = iota
 	C_OK
 	C_INVALID_CHAR
 	C_INT_TOO_BIG
@@ -29,11 +28,11 @@ type Error struct {
 }
 
 // Creates new error from kind and line number
-func NewError(kind ErrorKind, code ErrorCode, line int, val any) Error {
+func newError(kind ErrorKind, code ErrorCode, line int, val any) Error {
 	return Error{kind, code, line, val}
 }
 
-func (e *Error) ToString() string {
+func (e *Error) string() string {
 	return fmt.Sprintf("ERROR %v(%d) en la LINEA %v: %v", e.kind.string(), e.code, e.line, e.code.string(e.val))
 }
 
@@ -47,7 +46,7 @@ func (k ErrorKind) string() string {
 	case K_SEMANTICAL:
 		str = "SEMANTICO"
 	default:
-		str = "DESCONOCIDO"
+		str = "INTERNO"
 	}
 	return str
 }
@@ -55,8 +54,6 @@ func (k ErrorKind) string() string {
 func (c ErrorCode) string(val any) string {
 	var str string
 	switch c {
-	case C_ID_TOO_LONG:
-		str = fmt.Sprintf("El identificador '%s' supera el limite maximo de caracteres", val)
 	case C_STRING_TOO_LONG:
 		str = fmt.Sprintf("La cadena '%s' supera el limite maximo de caracteres", val)
 	case C_INVALID_CHAR:

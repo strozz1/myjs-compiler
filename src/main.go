@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"compiler-pdl/src/diagnostic"
+	"compiler-pdl/src/errors"
 	"compiler-pdl/src/lexer"
 	"compiler-pdl/src/st"
 	"compiler-pdl/src/token"
@@ -80,7 +80,7 @@ func initST(stManager *st.STManager) {
 
 func debug() {
 	DEBUG = true
-	diagnostic.DEBUG = true
+	errors.DEBUG = true
 	lexer.DEBUG = true
 	token.DEBUG = true
 	st.DEBUG = true

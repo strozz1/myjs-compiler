@@ -48,8 +48,8 @@ const (
 type AsigType int
 
 const (
-	ASIG_SIMPLE AsigType = iota
-	ASIG_MULT
+	ASIG_MULT AsigType = iota
+	ASIG_SIMPLE 
 )
 
 type AritType int
@@ -192,6 +192,10 @@ func (tk *Token) Write(w *bufio.Writer) {
 	if DEBUG {
 		fmt.Fprintf(w, "<%v, %v>\n", tk.Kind.String(), tk.Attr)
 	} else {
-		fmt.Fprintf(w, "<%d, %v>\n", tk.Kind, tk.Attr)
+		if tk.Kind==STRING_LITERAL{
+			fmt.Fprintf(w, "<%d, \"%v\">\n", tk.Kind, tk.Attr)
+		}else{
+			fmt.Fprintf(w, "<%d, %v>\n", tk.Kind, tk.Attr)
+		}
 	}
 }

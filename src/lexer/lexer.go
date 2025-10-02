@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"bufio"
-	"compiler-pdl/src/diagnostic"
+	"compiler-pdl/src/errors"
 	"compiler-pdl/src/st"
 	"compiler-pdl/src/token"
 	"fmt"
@@ -27,13 +27,12 @@ type Lexer struct {
 
 	//transition table
 	transitions TransitionTable
+
 	//tokens
 	tokens []token.Token
 
 	//SymbolTable manager
 	STManager *st.STManager
-	//Error Manager
-	errManager diagnostic.ErrorManager
 
 	EOF bool
 }
@@ -55,7 +54,6 @@ func NewLexer(r *bufio.Reader) (*Lexer, error) {
 		reader:      r,
 		tokens:      []token.Token{},
 		STManager:   st.NewSTManager(),
-		errManager:  diagnostic.NewErrorManager(),
 	}
 	sc.transitions = GenerateTransitions(&sc)
 	return &sc, nil
@@ -72,7 +70,7 @@ func (s *Lexer) appendChar() {
 }
 
 func (s *Lexer) newLine() {
-	s.errManager.NewLine()
+	errors.NewLine()
 }
 
 // reads the next char from the input reader.
@@ -102,7 +100,7 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 	for !ok && !s.EOF {
 		transition, code, errVal := s.transitions.Find(s.currentChar)
 		if transition == nil {
-			s.errManager.NewError(diagnostic.K_LEXICAL, code, errVal)
+			errors.NewError(errors.K_LEXICAL, code, errVal)
 			s.reset()
 			s.nextChar()
 			return token, false //TODO
@@ -139,5 +137,5 @@ func (s *Lexer) WriteTokens(w *bufio.Writer) {
 
 // Write lexical errors with the specified Writer
 func (s *Lexer) WriteErrors(w io.Writer) {
-	s.errManager.Write(w)
+	errors.Write(w)
 }
