@@ -33,10 +33,14 @@ type TransitionTable struct {
 	start        State
 	finals       []State
 	currentState State
+	errorState State
 }
 
 func (t TransitionTable) isFinal() bool {
 	return slices.Contains(t.finals, t.currentState)
+}
+func( t* TransitionTable) toError(){
+	t.currentState=t.errorState
 }
 
 var transId rune = -1
@@ -68,7 +72,7 @@ func (t *TransitionTable) addTransition(currentState State, nextState State, cha
 func (t *TransitionTable) Find(char rune) (*TransEntry, errors.ErrorCode, any) {
 	transition, ok := t.table[t.currentState]
 	if !ok {
-		return nil, errors.C_INVALID_CHAR, char
+		return nil, -1, char
 	}
 	for r, i := range transition {
 		//if a match set r
@@ -79,7 +83,7 @@ func (t *TransitionTable) Find(char rune) (*TransEntry, errors.ErrorCode, any) {
 	}
 	entry, ok := transition[char]
 	if !ok {
-		return nil, errors.C_INVALID_CHAR, char
+		return nil, -1, char
 	}
 	t.currentState = entry.Next
 	return entry, errors.C_OK, nil
@@ -123,15 +127,19 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		F16
 		F17
 		F18
+
+		E1
+		E2
 	)
 	finals := []State{
 		F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11,
-		F12, F13, F14, F15, F16, F17, F18}
+		F12, F13, F14, F15, F16, F17, F18,E2}
 
 	t := TransitionTable{
 		table:        map[State]map[rune]*TransEntry{},
 		finals:       finals,
 		start:        S0,
+		errorState:E1,
 		currentState: S0,
 	}
 
@@ -185,14 +193,17 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	})
 
 	t.addTransition(S0, S5, 0, matchDigit, func() (token.Token, bool) {
+		sc.appendChar()
 		sc.intVal *= 10
 		d := int64(sc.currentChar - '0')
 		sc.intVal += d
+		sc.tokenState=NUMBER
 		sc.nextChar()
 		return token.Token{}, false
 	})
 
 	t.addTransition(S5, S5, 0, matchDigit, func() (token.Token, bool) {
+		sc.appendChar()
 		sc.intVal *= 10
 		d := int64(sc.currentChar - '0')
 		sc.intVal += d
@@ -213,11 +224,14 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	})
 
 	t.addTransition(S5, S14, '.', nil, func() (token.Token, bool) {
+		sc.appendChar()
 		sc.decimalPos = 0
+		sc.tokenState=FLOAT
 		sc.nextChar()
 		return token.Token{}, false
 	})
 	t.addTransition(S14, S9, 0, matchDigit, func() (token.Token, bool) {
+		sc.appendChar()
 		sc.decimalPos += 1
 		sc.intVal *= 10
 		d := int64(sc.currentChar - '0')
@@ -291,8 +305,10 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		if sc.isReserved(sc.lexeme) {
 			tk = token.NewToken(token.From(sc.lexeme), sc.lexeme, "")
 		} else {
-			sc.STManager.AddGlobalEntry(sc.lexeme)
-			tk = token.NewToken(token.ID, sc.lexeme, 1)
+			val:=sc.STManager.AddGlobalEntry(sc.lexeme)
+			if val!=nil{
+				tk = token.NewToken(token.ID, sc.lexeme, val.Pos)
+			}
 			//TODO: check ST
 		}
 		return tk, true
@@ -382,6 +398,17 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		return tk, true
 	})
 
+	//error state
+	t.addTransition(E1,E1,0,matchNoDel,func()(token.Token,bool){
+		sc.appendChar()
+		sc.nextChar()
+		return token.Token{},false
+	})
+	t.addTransition(E1,E2,0,matchDelOrSemi,func()(token.Token,bool){
+		errors.NewError(errors.K_LEXICAL,sc.tokenState.toError(),sc.lexeme)
+		return token.Token{},false
+	})
+
 	//t.debugPrint()
 	return t
 }
@@ -427,6 +454,13 @@ var matchDigit = func(c rune) bool {
 var matchDel = func(c rune) bool {
 	return c == ' ' || c == '\t' || c == '\n' || c == '\r'
 }
+
+var matchDelOrSemi = func(c rune) bool {
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r'||c==';'
+}
+var matchNoDel = func(c rune) bool {
+	return !(c == ' ' || c == '\t' || c == '\n' || c == '\r')
+}
 var matchNotEq = func(c rune) bool {
 	return c != '='
 }
@@ -437,9 +471,7 @@ var matchNotDotOrDigit = func(c rune) bool {
 var matchNotDigit = func(c rune) bool {
 	return !(c >= '0' && c <= '9')
 }
-var matchScape = func(c rune) bool {
-	return c == 'n' || c == 't' || c == 'r'
-}
+
 
 func (m *TransitionTable) debugPrint() {
 	if DEBUG {

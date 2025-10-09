@@ -1,7 +1,7 @@
-let string texto;
+00.f let string texto;
 function void pideTexto(void)
 {
-	write 'Escribe algo';
+	write 'Escdfkjdfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffribe algo';
 	read texto;
 }
 function void output(string msg)

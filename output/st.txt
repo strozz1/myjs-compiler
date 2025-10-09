@@ -1,0 +1,17 @@
+Global Table #1:
+* LEXEMA: 'a'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'b'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'bbb'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'rrr'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'ccc'
+  Atributos:
+    + Tipo: '-'
+------------------------------------------

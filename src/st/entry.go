@@ -53,6 +53,7 @@ type Entry struct {
 	lexeme     string                //lexeme
 	kind       LexemeKind            //lexeme kind
 	Attributes map[string]*Attribute //attribute list
+	Pos        int                   // pos
 }
 
 // Creates new symbol entry from the original lexeme.

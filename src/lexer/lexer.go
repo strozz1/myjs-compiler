@@ -13,6 +13,27 @@ import (
 
 var DEBUG bool
 
+//TODO ver si error intchar
+type TokenState int
+const(
+	NONE TokenState =iota
+	NUMBER
+	FLOAT
+	ID
+)
+func (st TokenState) toError()errors.ErrorCode{
+	var error errors.ErrorCode
+	switch st{
+	case NUMBER:
+		error=errors.C_MALFORMED_NUMBER
+	case FLOAT:
+		error=errors.C_MALFORMED_FLOAT
+	case ID:
+		error=errors.C_MALFORMED_ID
+	}
+	return error
+}
+
 type Lexer struct {
 	//currentChar char red
 	currentChar rune
@@ -21,6 +42,7 @@ type Lexer struct {
 
 	intVal     int64
 	decimalPos int
+	tokenState TokenState
 
 	//buffer input reader
 	reader *bufio.Reader
@@ -100,6 +122,16 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 	for !ok && !s.EOF {
 		transition, code, errVal := s.transitions.Find(s.currentChar)
 		if transition == nil {
+			if code ==-1 {
+				if s.tokenState!=NONE{
+					s.transitions.toError()
+					continue
+				}
+				code=s.tokenState.toError()
+				errVal=fmt.Sprintf("%s",s.lexeme)
+			}else{
+				code=errors.C_INVALID_CHAR
+			}
 			errors.NewError(errors.K_LEXICAL, code, errVal)
 			s.reset()
 			s.nextChar()
@@ -121,6 +153,7 @@ func (s *Lexer) reset() {
 	s.lexeme = ""
 	s.intVal = 0
 	s.decimalPos = 0
+	s.tokenState=0
 	s.transitions.currentState = s.transitions.start
 }
 

@@ -35,6 +35,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error creating token file: %v\n", e)
 	}
 	defer tkFile.Close()
+	stFile, e := os.Create("output/st.txt")
+	if e != nil {
+		fmt.Fprintf(os.Stderr, "Error creating simbol table file: %v\n", e)
+	}
+	defer stFile.Close()
 
 	lexer, e := lexer.NewLexer(bufio.NewReader(file))
 	initST(lexer.STManager)
@@ -46,6 +51,7 @@ func main() {
 	for !lexer.EOF{
 		lexer.Lexical()
 	}
+	lexer.STManager.Write(stFile,lexer.STManager.Current)
 	lexer.WriteTokens(bufio.NewWriter(tkFile))
 	lexer.WriteErrors(os.Stderr)
 }
@@ -76,6 +82,7 @@ func initST(stManager *st.STManager) {
 	stManager.CreateAttribute("parametro", "param", st.T_INTEGER)
 	stManager.CreateAttribute("dimension", "dimension", st.T_INTEGER)
 	stManager.CreateAttribute("elem", "elem", st.T_STRING)
+
 }
 
 func debug() {

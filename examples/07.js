@@ -1,0 +1,11 @@
+let int a ;
+let  int   b  ;
+let boolean bbb ;
+a = 3;
+b=a					    		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 																;
+let float rrr;
+let float ccc;if (rrr == ccc) b *= 1;
+a = a - b;
+write a ;
+write b;
+write ccc;

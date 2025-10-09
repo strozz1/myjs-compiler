@@ -13,11 +13,14 @@ const (
 type ErrorCode int
 
 const (
-	C_STRING_TOO_LONG ErrorCode = iota
-	C_OK
+	C_OK ErrorCode = iota
+	C_STRING_TOO_LONG 
 	C_INVALID_CHAR
 	C_INT_TOO_BIG
 	C_FLOAT_TOO_BIG
+	C_MALFORMED_NUMBER
+	C_MALFORMED_FLOAT
+	C_MALFORMED_ID
 )
 
 type Error struct {
@@ -62,6 +65,12 @@ func (c ErrorCode) string(val any) string {
 		str = fmt.Sprintf("Valor entero '%d' supera el limite.", val)
 	case C_FLOAT_TOO_BIG:
 		str = fmt.Sprintf("Valor real '%f' supera el limite.", val)
+	case C_MALFORMED_NUMBER:
+		str= fmt.Sprintf("Literal numerico '%s' mal formado",val)
+	case C_MALFORMED_FLOAT:
+		str= fmt.Sprintf("Literal real '%s' mal formado",val)
+	case C_MALFORMED_ID:
+		str= fmt.Sprintf("El identificador '%s' no es valido",val)
 	case C_OK:
 		str = "OK"
 	default:

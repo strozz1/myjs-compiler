@@ -9,49 +9,54 @@ type SymbolTable struct {
 	id     int
 	name   string
 	table  map[string]*Entry
-	inner *SymbolTable
+	inner  *SymbolTable
 	parent *SymbolTable
 }
 
-
 // Interal function to create a new SymbolTable.
-//Initializes the table and assings an id
+// Initializes the table and assings an id
 func createST(name string) *SymbolTable {
 	stIdCounter++
 	return &SymbolTable{
-		id:     stIdCounter,
-		name:   name,
-		table:  map[string]*Entry{},
+		id:    stIdCounter,
+		name:  name,
+		table: map[string]*Entry{},
 	}
 
 }
 
-func (s *SymbolTable) GetEntry(name string) (*Entry,bool){
-	a,ok:=s.table[name]
-	return a,ok
+func (s *SymbolTable) GetEntry(name string) (*Entry, bool) {
+	a, ok := s.table[name]
+	return a, ok
 }
 
 // Adds a new Symbol/Entry to the table. If it already exists returns a nil.
 func (s *SymbolTable) AddEntry(lex string) *Entry {
-	_, err := s.table[lex]
+	e, err := s.table[lex]
 	if err {
 		if DEBUG {
 			fmt.Printf("DEBUG: Failed to insert already existing Symbol '%v' on table [%v]\n\r", lex, s.name)
 		}
-		return nil
+		return e
 	}
-	s.table[lex] = NewEntry(lex)
-	a, _ := s.table[lex]
-	if DEBUG{
-		fmt.Printf("DEBUG: Added new entry '%v' to table '%v'\n\r",lex,s.name)
+	l := len(s.table)
+	e = NewEntry(lex)
+	e.Pos = l
+	s.table[lex] = e
+	a, ok := s.table[lex]
+	if DEBUG {
+		fmt.Printf("DEBUG: Added new entry '%v' to table '%v'\n\r", lex, s.name)
+		if !ok {
+			fmt.Printf("ERROR: cant add entry '%v' to table %s\n", lex, s.name)
+		}
 	}
 	return a
 }
 
 func (s *SymbolTable) RemoveEntry(lex string) {
 	delete(s.table, lex)
-	if DEBUG{
-		fmt.Printf("DEBUG: Removed entry '%v' from table '%v'\n\r",lex,s.name)
+	if DEBUG {
+		fmt.Printf("DEBUG: Removed entry '%v' from table '%v'\n\r", lex, s.name)
 	}
 }
 
@@ -65,6 +70,5 @@ func (s *SymbolTable) Write(w io.Writer) {
 	for _, i := range s.table {
 		i.Write(w)
 	}
-	fmt.Fprintln(w,"------------------------------------------")
+	fmt.Fprintln(w, "------------------------------------------")
 }
-
