@@ -120,6 +120,7 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 func (s *Lexer) reset() {
 	s.lexeme = ""
 	s.intVal = 0
+	s.decimalPos = 0
 	s.transitions.currentState = s.transitions.start
 }
 
