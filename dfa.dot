@@ -18,7 +18,8 @@ digraph DFA{
     S0 -> S5 [label="digit"];
     S5 -> S5 [label="digit"];
     S5 -> F5 [label="char\\digit+."];
-    S5 -> S9 [label="."];
+    S5 -> S14 [label="."];
+    S14 -> S9 [label="digit"];
     S9 -> S9 [label="digit"];
     S9 -> F8 [label="char\\digit"];
 
@@ -65,6 +66,7 @@ digraph DFA{
     S7 [shape=circle];
     S8 [shape=circle];
     S9 [shape=circle];
+    S14 [shape=circle];
     S10 [shape=circle];
     S11 [shape=circle];
     S12 [shape=circle];

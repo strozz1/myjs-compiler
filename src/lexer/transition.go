@@ -102,6 +102,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		S11
 		S12
 		S13
+		S14
 		//Finals
 		F0
 		F1
@@ -211,11 +212,20 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		return tk, true
 	})
 
-	t.addTransition(S5, S9, '.', nil, func() (token.Token, bool) {
-		sc.decimalPos =0
+	t.addTransition(S5, S14, '.', nil, func() (token.Token, bool) {
+		sc.decimalPos = 0
 		sc.nextChar()
 		return token.Token{}, false
 	})
+	t.addTransition(S14, S9, 0, matchDigit, func() (token.Token, bool) {
+		sc.decimalPos += 1
+		sc.intVal *= 10
+		d := int64(sc.currentChar - '0')
+		sc.intVal += d
+		sc.nextChar()
+		return token.Token{}, false
+	})
+
 	t.addTransition(S9, S9, 0, matchDigit, func() (token.Token, bool) {
 		sc.decimalPos += 1
 		sc.intVal *= 10
@@ -227,7 +237,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	//float
 	t.addTransition(S9, F8, 0, matchNotDigit, func() (token.Token, bool) {
 		//TODO FLOAT
-		var val float64 = float64(sc.intVal) * math.Pow(10.0,float64(-sc.decimalPos))
+		var val float64 = float64(sc.intVal) * math.Pow(10.0, float64(-sc.decimalPos))
 		value, ok := safeFloat32(val)
 		if !ok {
 			errors.NewError(errors.K_LEXICAL, errors.C_FLOAT_TOO_BIG, val)
@@ -246,16 +256,6 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	//CONT STRING LITERAL
 	t.addTransition(S7, S7, 0, matchNotQuote, func() (token.Token, bool) {
 		sc.appendChar()
-		sc.nextChar()
-		return token.Token{}, false
-	})
-	t.addTransition(S7, S8, '\\', nil, func() (token.Token, bool) {
-		sc.nextChar()
-		return token.Token{}, false
-	})
-	//scape
-	t.addTransition(S8, S7, 0, matchScape, func() (token.Token, bool) {
-		sc.lexeme += fmt.Sprintf("\\%c", sc.currentChar)
 		sc.nextChar()
 		return token.Token{}, false
 	})
