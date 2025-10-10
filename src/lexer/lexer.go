@@ -13,23 +13,25 @@ import (
 
 var DEBUG bool
 
-//TODO ver si error intchar
+// TODO ver si error intchar
 type TokenState int
-const(
-	NONE TokenState =iota
+
+const (
+	NONE TokenState = iota
 	NUMBER
 	FLOAT
 	ID
 )
-func (st TokenState) toError()errors.ErrorCode{
+
+func (st TokenState) toError() errors.ErrorCode {
 	var error errors.ErrorCode
-	switch st{
+	switch st {
 	case NUMBER:
-		error=errors.C_MALFORMED_NUMBER
+		error = errors.C_MALFORMED_NUMBER
 	case FLOAT:
-		error=errors.C_MALFORMED_FLOAT
+		error = errors.C_MALFORMED_FLOAT
 	case ID:
-		error=errors.C_MALFORMED_ID
+		error = errors.C_MALFORMED_ID
 	}
 	return error
 }
@@ -120,19 +122,16 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 	var ok bool = false
 	var token token.Token
 	for !ok && !s.EOF {
-		transition, code, errVal := s.transitions.Find(s.currentChar)
+		transition, transOk:= s.transitions.Find(s.currentChar)
 		if transition == nil {
-			if code ==-1 {
-				if s.tokenState!=NONE{
+			if !transOk {
+				//if invalid id,number,..
+				if s.tokenState != NONE {
 					s.transitions.toError()
 					continue
 				}
-				code=s.tokenState.toError()
-				errVal=fmt.Sprintf("%s",s.lexeme)
-			}else{
-				code=errors.C_INVALID_CHAR
 			}
-			errors.NewError(errors.K_LEXICAL, code, errVal)
+			errors.NewError(errors.K_LEXICAL, errors.C_INVALID_CHAR, s.currentChar)
 			s.reset()
 			s.nextChar()
 			return token, false //TODO
@@ -153,7 +152,8 @@ func (s *Lexer) reset() {
 	s.lexeme = ""
 	s.intVal = 0
 	s.decimalPos = 0
-	s.tokenState=0
+	s.tokenState = 0
+	s.tokenState = NONE
 	s.transitions.currentState = s.transitions.start
 }
 

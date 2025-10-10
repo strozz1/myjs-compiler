@@ -69,10 +69,10 @@ func (t *TransitionTable) addTransition(currentState State, nextState State, cha
 	trans[char] = &TransEntry{Next: nextState, Action: action, Match: match}
 }
 
-func (t *TransitionTable) Find(char rune) (*TransEntry, errors.ErrorCode, any) {
+func (t *TransitionTable) Find(char rune) (*TransEntry, bool) {
 	transition, ok := t.table[t.currentState]
 	if !ok {
-		return nil, -1, char
+		return nil, false 
 	}
 	for r, i := range transition {
 		//if a match set r
@@ -83,10 +83,10 @@ func (t *TransitionTable) Find(char rune) (*TransEntry, errors.ErrorCode, any) {
 	}
 	entry, ok := transition[char]
 	if !ok {
-		return nil, -1, char
+		return nil, false 
 	}
 	t.currentState = entry.Next
-	return entry, errors.C_OK, nil
+	return entry, true 
 }
 
 // Generates de transitions of the DFA for the lexer.
@@ -179,6 +179,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	})
 
 	t.addTransition(S0, S4, '!', nil, func() (token.Token, bool) {
+		sc.nextChar()
 		return token.Token{}, false
 	})
 	// !=

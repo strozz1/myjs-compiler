@@ -14,8 +14,8 @@ type ErrorCode int
 
 const (
 	C_OK ErrorCode = iota
-	C_STRING_TOO_LONG 
 	C_INVALID_CHAR
+	C_STRING_TOO_LONG 
 	C_INT_TOO_BIG
 	C_FLOAT_TOO_BIG
 	C_MALFORMED_NUMBER

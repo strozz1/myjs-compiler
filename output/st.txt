@@ -1,17 +1,35 @@
 Global Table #1:
-* LEXEMA: 'a'
+* LEXEMA: 'booleano'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'b'
+* LEXEMA: 'a'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'bbb'
+* LEXEMA: 'dias'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'rrr'
+* LEXEMA: 'dd'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'ccc'
+* LEXEMA: 'bisiesto'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'kkk'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'm'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'esFechaCorrecta'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'd'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'demo'
+  Atributos:
+    + Tipo: '-'
+* LEXEMA: 'var'
   Atributos:
     + Tipo: '-'
 ------------------------------------------
