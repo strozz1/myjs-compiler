@@ -1,35 +1,20 @@
 Global Table #1:
-* LEXEMA: 'booleano'
+* LEXEMA: 'pideTexto'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'a'
+* LEXEMA: 'output'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'dias'
+* LEXEMA: '_msg1_'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'dd'
+* LEXEMA: 'num_real'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'bisiesto'
+* LEXEMA: 'textoAux'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'kkk'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'm'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'esFechaCorrecta'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'd'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'demo'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'var'
+* LEXEMA: 'texto'
   Atributos:
     + Tipo: '-'
 ------------------------------------------

@@ -20,6 +20,7 @@ const (
 	C_FLOAT_TOO_BIG
 	C_MALFORMED_NUMBER
 	C_MALFORMED_FLOAT
+	C_MALFORMED_STRING
 	C_MALFORMED_ID
 )
 
@@ -71,6 +72,8 @@ func (c ErrorCode) string(val any) string {
 		str= fmt.Sprintf("Literal real '%s' mal formado",val)
 	case C_MALFORMED_ID:
 		str= fmt.Sprintf("El identificador '%s' no es valido",val)
+	case C_MALFORMED_STRING:
+		str= fmt.Sprintf("Cadena '%s' mal formada",val)
 	case C_OK:
 		str = "OK"
 	default:

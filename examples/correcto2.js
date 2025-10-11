@@ -15,7 +15,7 @@ let int UNO = uno;
 
 function string salto (void)
 {
-	return '';
+	return ';
 }
 
 function int FactorialDo (int n)

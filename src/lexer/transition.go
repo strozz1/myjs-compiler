@@ -265,11 +265,12 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 
 	//BEGIN STRING_LITERAL
 	t.addTransition(S0, S7, '\'', nil, func() (token.Token, bool) {
+		sc.tokenState=STRING
 		sc.nextChar()
 		return token.Token{}, false
 	})
 	//CONT STRING LITERAL
-	t.addTransition(S7, S7, 0, matchNotQuote, func() (token.Token, bool) {
+	t.addTransition(S7, S7, 0, matchNotQuoteOrDel, func() (token.Token, bool) {
 		sc.appendChar()
 		sc.nextChar()
 		return token.Token{}, false
@@ -434,8 +435,8 @@ var matchNotDash = func(c rune) bool {
 var matchNotStar = func(c rune) bool {
 	return c != '*'
 }
-var matchNotQuote = func(c rune) bool {
-	return c != '\''
+var matchNotQuoteOrDel = func(c rune) bool {
+	return !(c == '\''|| c=='\n'||c=='\r')
 }
 
 var matchId = func(c rune) bool {

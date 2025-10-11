@@ -20,6 +20,7 @@ const (
 	NONE TokenState = iota
 	NUMBER
 	FLOAT
+	STRING
 	ID
 )
 
@@ -30,6 +31,8 @@ func (st TokenState) toError() errors.ErrorCode {
 		error = errors.C_MALFORMED_NUMBER
 	case FLOAT:
 		error = errors.C_MALFORMED_FLOAT
+	case STRING:
+		error=errors.C_MALFORMED_STRING
 	case ID:
 		error = errors.C_MALFORMED_ID
 	}
