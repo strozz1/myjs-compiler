@@ -6,45 +6,42 @@ digraph DFA{
     S0 -> S0 [label="del"];
     S0 -> S1 [label="="];
     S1 -> F0 [label="="];
-    S1 -> F1 [label="char\\="];
+    S1 -> F1 [label="c3"];
 
     S0 -> S3 [label="*"];
     S3 -> F2 [label="="];
 
     S0 -> S4 [label="!"];
     S4 -> F3 [label="="];
-    S4 -> F4 [label="char\\="];
+    S4 -> F4 [label="c3"];
 
-    S0 -> S5 [label="digit"];
-    S5 -> S5 [label="digit"];
-    S5 -> F5 [label="char\\digit+."];
+    S0 -> S5 [label="d"];
+    S5 -> S5 [label="d"];
+    S5 -> F5 [label="c4"];
     S5 -> S14 [label="."];
-    S14 -> S9 [label="digit"];
-    S9 -> S9 [label="digit"];
-    S9 -> F8 [label="char\\digit"];
+    S14 -> S9 [label="d"];
+    S9 -> S9 [label="d"];
+    S9 -> F8 [label="c5"];
 
     
     S0 -> S7 [label="'"];
-    S7 -> S7 [label="char"];
+    S7 -> S7 [label="l"];
 
     S7 -> F7 [label="'"];
-    S7 -> S8 [label="\\"];
-    S8 -> S7 [label="n/t"];
-    S0 -> S6 [label="letra"];
+    S0 -> S6 [label="l"];
     S0 -> S6 [label="_"];
-    S6 -> S6 [label="digit/letra/_"];
+    S6 -> S6 [label="d/l/_"];
     S6 -> F6 [label="c'"];
 
     S0 -> S10 [label="/"];
     S10 -> S11 [label="*"];
-    S11 -> S11 [label="char\\*"];
+    S11 -> S11 [label="c1"];
     S11 -> S12 [label="*"];
-    S12 -> S11 [label="char\\ /"];
+    S12 -> S11 [label="c2"];
     S12 -> F9 [label="/"];
 
     S0 -> F10 [label="{"];
     S0 -> F11 [label="}"];
-
     S0 -> F12 [label="("];
     S0 -> F13 [label=")"];
 
@@ -58,13 +55,11 @@ digraph DFA{
 
     S0 [shape=circle];
     S1 [shape=circle];
-    S2 [shape=circle];
     S3 [shape=circle];
     S4 [shape=circle];
     S5 [shape=circle];
     S6 [shape=circle];
     S7 [shape=circle];
-    S8 [shape=circle];
     S9 [shape=circle];
     S14 [shape=circle];
     S10 [shape=circle];

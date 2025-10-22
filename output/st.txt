@@ -1,20 +1,17 @@
 Global Table #1:
-* LEXEMA: 'pideTexto'
+* LEXEMA: 'b'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'output'
+* LEXEMA: 'bbb'
   Atributos:
     + Tipo: '-'
-* LEXEMA: '_msg1_'
+* LEXEMA: 'rrr'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'num_real'
+* LEXEMA: 'ccc'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'textoAux'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'texto'
+* LEXEMA: 'a'
   Atributos:
     + Tipo: '-'
 ------------------------------------------

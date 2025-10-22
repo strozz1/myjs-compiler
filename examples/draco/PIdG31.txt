@@ -1,7 +1,7 @@
 let boolean  booleano;
 function boolean bisiesto (int a)	
 {			
-	return (a - 4 != 0 && a + 100 != 0 && a - 400 == 0);	
+	return (a + 4 != 0 && a + 100 != 0 && a + 400 == 0);	
 	let float kkk;
 } 
 function int dias (int m, int a)
@@ -14,16 +14,15 @@ function int dias (int m, int a)
 	if (bisiesto(a)) dd = dd + 1;
 	return dd;
 }
-function  boolean esFechaCorrecta (int d, int m, int a)	
+function  boolean esFechaCorrecta(int d, int m, int a)	
 {
-	return (d != dias (m, a));
+	return m!=1 && m!=12 && d==1 && d != dias (m, a);
 }
-function void demo 
-(void)	
-{
+function void demo  (void)	
+{	let float kkk;
 
-	if (!esFechaCorrecta(22, 22, 2022)) write 9999;
-	return;
+	if (esFechaCorrecta(25, 10, 2024)) write ('OK');
+	
 }
-let boolean  var;
+let boolean  abc_;
 demo();

@@ -170,10 +170,12 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	})
 
 	t.addTransition(S0, S3, '*', nil, func() (token.Token, bool) {
+		sc.nextChar()
 		return token.Token{}, false
 	})
 	//*=
 	t.addTransition(S3, F2, '=', nil, func() (token.Token, bool) {
+		sc.nextChar()
 		tk := token.NewToken(token.ASIG, "*=", token.ASIG_MULT)
 		return tk, true
 	})
@@ -184,18 +186,18 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	})
 	// !=
 	t.addTransition(S4, F3, '=', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.RELAC, "!=", token.REL_NOTEQ)
 		sc.nextChar()
+		tk := token.NewToken(token.RELAC, "!=", token.REL_NOTEQ)
 		return tk, true
 	})
-	t.addTransition(S4, F3, 0, matchNotEq, func() (token.Token, bool) {
+	t.addTransition(S4, F4, 0, matchNotEq, func() (token.Token, bool) {
 		tk := token.NewToken(token.LOGICO, "!", token.LOG_NEG)
 		return tk, true
 	})
 
 	t.addTransition(S0, S5, 0, matchDigit, func() (token.Token, bool) {
 		sc.appendChar()
-		sc.intVal *= 10
+		sc.intVal = 0
 		d := int64(sc.currentChar - '0')
 		sc.intVal += d
 		sc.tokenState=NUMBER
@@ -251,7 +253,6 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	})
 	//float
 	t.addTransition(S9, F8, 0, matchNotDigit, func() (token.Token, bool) {
-		//TODO FLOAT
 		var val float64 = float64(sc.intVal) * math.Pow(10.0, float64(-sc.decimalPos))
 		value, ok := safeFloat32(val)
 		if !ok {
@@ -282,21 +283,21 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 			sc.reset()
 			return token.Token{}, false
 		}
-		tk := token.NewToken(token.STRING_LITERAL, sc.lexeme, sc.lexeme)
 		sc.nextChar()
+		tk := token.NewToken(token.STRING_LITERAL, sc.lexeme, sc.lexeme)
 		return tk, true
 	})
 
 	// Start of ID
 	t.addTransition(S0, S6, 0, matchIdFirst, func() (token.Token, bool) {
-		sc.lexeme = string(append([]rune(sc.lexeme), sc.currentChar))
+		sc.appendChar()
 		sc.nextChar()
 		return token.Token{}, false
 	})
 
 	// Cont of ID
 	t.addTransition(S6, S6, 0, matchId, func() (token.Token, bool) {
-		sc.lexeme = string(append([]rune(sc.lexeme), sc.currentChar))
+		sc.appendChar()
 		sc.nextChar()
 		return token.Token{}, false
 	})
@@ -350,43 +351,43 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 
 	//curl
 	t.addTransition(S0, F10, '{', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.ABRIR_CORCH, "{", "")
 		sc.nextChar()
+		tk := token.NewToken(token.ABRIR_CORCH, "{", "")
 		return tk, true
 	})
 	t.addTransition(S0, F11, '}', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.CERRAR_CORCH, "}", "")
 		sc.nextChar()
+		tk := token.NewToken(token.CERRAR_CORCH, "}", "")
 		return tk, true
 	})
 	t.addTransition(S0, F12, '(', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.ABRIR_PAR, "(", "")
 		sc.nextChar()
+		tk := token.NewToken(token.ABRIR_PAR, "(", "")
 		return tk, true
 	})
 	t.addTransition(S0, F13, ')', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.CERRAR_PAR, ")", "")
 		sc.nextChar()
+		tk := token.NewToken(token.CERRAR_PAR, ")", "")
 		return tk, true
 	})
 	t.addTransition(S0, F14, ';', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.PUNTOYCOMA, ";", "")
 		sc.nextChar()
+		tk := token.NewToken(token.PUNTOYCOMA, ";", "")
 		return tk, true
 	})
 	t.addTransition(S0, F15, '+', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.ARITM, "+", token.ARIT_PLUS)
 		sc.nextChar()
+		tk := token.NewToken(token.ARITM, "+", token.ARIT_PLUS)
 		return tk, true
 	})
 	t.addTransition(S0, F16, '-', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.ARITM, "", token.ARIT_MINUS)
 		sc.nextChar()
+		tk := token.NewToken(token.ARITM, "-", token.ARIT_MINUS)
 		return tk, true
 	})
 	t.addTransition(S0, F17, ',', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.COMA, ",", "")
 		sc.nextChar()
+		tk := token.NewToken(token.COMA, ",", "")
 		return tk, true
 	})
 
@@ -395,8 +396,8 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		return token.Token{}, false
 	})
 	t.addTransition(S13, F18, '&', nil, func() (token.Token, bool) {
-		tk := token.NewToken(token.LOGICO, "&&", token.LOG_AND)
 		sc.nextChar()
+		tk := token.NewToken(token.LOGICO, "&&", token.LOG_AND)
 		return tk, true
 	})
 

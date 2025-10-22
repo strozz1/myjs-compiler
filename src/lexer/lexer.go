@@ -13,7 +13,6 @@ import (
 
 var DEBUG bool
 
-// TODO ver si error intchar
 type TokenState int
 
 const (

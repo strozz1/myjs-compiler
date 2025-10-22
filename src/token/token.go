@@ -42,7 +42,6 @@ const (
 	FALSE
 	TRUE
 
-	NULL
 )
 
 type AsigType int
@@ -113,8 +112,6 @@ func (t TokenKind) String() string {
 		return "BOOLEAN"
 	case STRING:
 		return "STRING"
-	case NULL:
-		return "NULL"
 	case WRITE:
 		return "WRITE"
 	case READ:
@@ -155,8 +152,6 @@ func From(token string) TokenKind {
 		t = STRING
 	case "boolean":
 		t = BOOLEAN
-	case "null":
-		t = NULL
 	case "write":
 		t = WRITE
 	case "read":
