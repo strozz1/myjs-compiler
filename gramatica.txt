@@ -5,11 +5,12 @@ Terminales = { ; = { } ( ) return read id write ,  function int float boolean vo
 Axioma = P
 
 Producciones = {
+//// FIRST(P)={function,lambda,if, let do, id, write, read, return}
 P -> Decl P
 P -> DecFunc P
 P -> lambda
 
-
+//// FIRST(Decl)={if, let do, id, write, read, return}
 Decl -> if ( Expr ) Sent
 Decl -> let TipoDecl id ;
 Decl -> do WhileBody
@@ -20,71 +21,103 @@ TipoDecl -> lambda
 
 WhileBody -> { FuncBody } while ( Expr ) ;
 
+//// FIRST(Exp)={!,+,-}
 Expr -> ExpRel Expr2
+
+
+//// FIRST(Expr2)={&&,lambda}
 Expr2 ->  && ExpRel Expr2
 Expr2 -> lambda
 
+//// FIRST(ExpRel)={!,+,-}
 ExpRel -> AritExp ExpRel2
+
+//// FIRST(ExpRel2)={ ==, !=, lambda}
 ExpRel2 -> == AritExp ExpRel2
 ExpRel2 -> != AritExp ExpRel2
 ExpRel2 -> lambda
 
+//// FIRST(AritExp)={!,+,-}
 AritExp -> Term AritExp2
 
+//// FIRST(AritExp2)={+,-,lambda}
 AritExp2 -> + Term AritExp2 
 AritExp2 -> - Term AritExp2
 AritExp2 -> lambda
 
+//// FIRST(Term)={!,+,-}
 Term -> ! Term3
 Term -> + Term2
 Term -> - Term2 
 
+//// FIRST(Term3)={true, false, intVal, realVal, id, stringVal, ( }
 Term3 -> true
 Term3 -> false
 Term3 -> Term2
 
+//// FIRST(Term2)={intVal, realVal, id, stringVal, ( }
 Term2 -> intVal
 Term2 -> realVal
 Term2 -> id FactorId
 Term2 -> stringVal
 Term2 -> ( Expr )
  
+ //// FIRST(FactorId)={(, lambda}
 FactorId -> ( ParamList )
 FactorId -> lambda
 
+
+//// FIRST(Tipo)={int,float,boolean,string}
 Tipo -> int
 Tipo -> float
 Tipo -> boolean 
 Tipo -> string
 
+//// FIRST(DecFunc)={function}
 DecFunc -> function TipoFunc id ( FuncParams ) { FuncBody }
 
+//// FIRST(TipoFunc)={void,int,float,boolean,string}
 TipoFunc -> Tipo
 TipoFunc -> void
 
+//// FIRST(FuncParams)={void,int,float,boolean,string}
+/// FOLLOW(FuncParams)={)}
 FuncParams -> Tipo id FuncParams2
 FuncParams -> void
 
+//// FIRST(FuncParams2)={',', lambda}
+/// FOLLOW(FuncParams2)={)}
 FuncParams2 -> , Tipo id FuncParams2
 FuncParams2 -> lambda
 
+//// FIRST(FuncBody)={if, let do, id, write, read, return,lambda}
+//// FOLLOw(FuncBody)={}}
 FuncBody -> Decl FuncBody
 FuncBody -> lambda
 
+//// FIRST(ParamList)={ lambda, !,+,-}
+//// FOLLOW(ParamList)={)}
 ParamList -> Expr ParamList2
 ParamList -> lambda
+
+//// FIRST(ParamList2)={',', lambda}
+//// FOLLOW(ParamList2)={)}
 ParamList2 -> , Expr ParamList2
 ParamList2 -> lambda
 
+//// FIRST(Sent)={id, write, read, return}
 Sent -> id Sent2
 Sent -> write Expr ;
 Sent -> read id ;
 Sent -> return ReturnExp ;
 
+//// FIRST(Sent2)={ =,*=, ( ,!,+,-}
 Sent2 -> = Expr ;
 Sent2 -> *= Expr ;
 Sent2 -> ( ParamList ) ;
 
+//// FIRST(ReturnExp)={lambda, !,+,-}
+//// FOLLOw(returnExp)={;, }
 ReturnExp -> Expr
 ReturnExp -> lambda
 }
