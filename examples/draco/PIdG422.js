@@ -1,20 +1,20 @@
 let string texto;
-function void output(string m_s_g)
+function void output(string msg)
 {
 	write 'Mensaje introducido:';
-	write m_s_g;
+	write msg;
 }
-function void pideTexto ( void )
+function void pidelooo ( void )
 {
-	write 'Introduce un texto corto';
+	write 'Introduce un textico';
 	read texto;
 }
 let float num_real;
-pideTexto();
+pidelooo();
 let  string  textoAux;textoAux = texto;
 output
  (
  textoAux                                                    
  )
  ;
-write num_real;
+

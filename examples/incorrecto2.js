@@ -1,4 +1,4 @@
-let    int a   ;
+let    int a   ;;;;;;;;;;;;;;
 let    int b       ;
 let    float cc ;
 let    int number  ;
@@ -7,16 +7,13 @@ read a;
 write 'Introduce el segundo operando';read  
 	b;
 
+let int a=3434343443433.0;
+
+&
+    ^
 function float real (float num1)
 {
 	return num1+num1;
+    ~
 }
 
-function int operacion	(int num_1, int num_2)
-{
-	return  num_1  +  num_2+77;
-}
-
-number = 032123;
-write operacion(b,a);
-write real(cc);

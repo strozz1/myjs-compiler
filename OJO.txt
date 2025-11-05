@@ -1,0 +1,5 @@
+incorrecto1 saca mal los errores
+los int len real len saca mal
+saca mal las lineas
+'RROR LEXICO(1) en la LINEA 11: Caracter invalido: '
+
