@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"compiler-pdl/src/errors"
 	"compiler-pdl/src/lexer"
+	"compiler-pdl/src/parser"
 	"compiler-pdl/src/st"
 	"compiler-pdl/src/token"
 	"fmt"
@@ -40,6 +41,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error creating simbol table file: %v\n", e)
 	}
 	defer stFile.Close()
+	parseFile, e := os.Create("output/parse.txt")
+	if e != nil {
+		fmt.Fprintf(os.Stderr, "Error creating parse file: %v\n", e)
+	}
+	defer parseFile.Close()
 
 	lexer, e := lexer.NewLexer(bufio.NewReader(file))
 	initST(lexer.STManager)
@@ -48,11 +54,16 @@ func main() {
 		return
 	}
 
-	for !lexer.EOF{
-		lexer.Lexical()
-	}
-	lexer.STManager.Write(stFile,lexer.STManager.Current)
+	parse := parser.NewParser(lexer)
+	parse.Parse()
+	//for !lexer.EOF{
+	//	lexer.Lexical()
+	//}
+	lexer.STManager.Write(stFile, lexer.STManager.Current)
 	lexer.WriteTokens(bufio.NewWriter(tkFile))
+
+	parse.Write(bufio.NewWriter(parseFile))
+	fmt.Println()
 	lexer.WriteErrors(os.Stderr)
 }
 
@@ -67,10 +78,9 @@ const (
 	DESC_PARAM        = "Param"       // param
 )
 
-
 func initST(stManager *st.STManager) {
 	stManager.ReservedWords = []string{
-		"true","false","int","float","boolean","string","write","read",
+		"true", "false", "int", "float", "boolean", "string", "write", "read",
 		"do", "while", "if", "function", "let", "return", "void",
 	}
 	stManager.CreateAttribute("despl", "despl", st.T_INTEGER)
@@ -88,7 +98,8 @@ func initST(stManager *st.STManager) {
 func debug() {
 	DEBUG = true
 	errors.DEBUG = true
-	lexer.DEBUG = true
 	token.DEBUG = true
+	lexer.DEBUG = true
+	parser.DEBUG = true
 	st.DEBUG = true
 }

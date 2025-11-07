@@ -1,38 +1,8 @@
 Global Table #1:
-* LEXEMA: 'x'
+* LEXEMA: 'sum'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'integer'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'aaaaa99999'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'k_bb_'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'num'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'n1'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'hola'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'aaaaa9999'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'continue'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'output'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'uu'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'call'
+* LEXEMA: 'a'
   Atributos:
     + Tipo: '-'
 ------------------------------------------

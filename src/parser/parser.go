@@ -1,15 +1,66 @@
 package parser
 
-import "compiler-pdl/src/lexer"
-import "compiler-pdl/src/token"
-import "compiler-pdl/src/errors"
+import (
+	"bufio"
+	"compiler-pdl/src/lexer"
+	"compiler-pdl/src/token"
+	"fmt"
+)
+
+var DEBUG bool
 
 type Parser struct {
-	lexer     lexer.Lexer
-	lookahead token.Token
+	parserExec ParserExec
 }
 
-func (p *Parser) getToken() bool {
+func NewParser(lexer *lexer.Lexer) Parser {
+	if DEBUG {
+		fmt.Println("DEBUG: Initialized Parser")
+		fmt.Println("DEBUG: Reading first Token from Lexer")
+	}
+	lookahead, ok := lexer.Lexical()
+	parserExec := ParserExec{
+		lexer,
+		lookahead,
+		[]int{},
+	}
+	if !ok {
+		//todo
+		return Parser{}
+	}
+	return Parser{
+		parserExec,
+	}
+}
+func (p *Parser) Parse() {
+	p.parserExec.P()
+}
+
+type ParserExec struct {
+	lexer     *lexer.Lexer
+	lookahead token.Token
+	list      []int
+}
+
+// Function that saves wich rule has been applied
+func (p *ParserExec) rule(i int) {
+	p.list = append(p.list, i)
+}
+
+func (p *Parser) Write(w *bufio.Writer) {
+	if DEBUG{
+		fmt.Println("DEBUG: Writting parse to output")
+	}
+
+	fmt.Fprintf(w,"D ")
+	for _, i := range p.parserExec.list {
+		fmt.Fprintf(w, "%d ", i)
+	}
+	fmt.Fprintln(w)
+	w.Flush()
+}
+
+func (p *ParserExec) getToken() bool {
 	tk, ok := p.lexer.Lexical()
 	if ok {
 		p.lookahead = tk
@@ -17,7 +68,10 @@ func (p *Parser) getToken() bool {
 	}
 	return ok
 }
-func (p *Parser) match(tk token.TokenKind, attr any) bool {
+
+// match token and ask for next token to lexer, saving it in p.lookahead
+// returns true if match is successful
+func (p *ParserExec) match(tk token.TokenKind, attr any) bool {
 	if p.lookahead.Kind == tk {
 		if attr != nil {
 			if p.lookahead.Attr == attr {
@@ -32,14 +86,17 @@ func (p *Parser) match(tk token.TokenKind, attr any) bool {
 	return false
 }
 
-// Grammar
-func (p *Parser) P() {
+// Axiom
+func (p *ParserExec) P() {
 	switch p.lookahead.Kind {
-	case token.FUNCTION: //FIRST(DecFunc)
-		p.DecFunc()
 	case token.LET, token.ID, token.IF, token.DO, token.READ, token.WRITE, token.RETURN:
+		p.rule(1)
 		p.Decl()
+	case token.FUNCTION: //FIRST(DecFunc)
+		p.rule(2)
+		p.DecFunc()
 	default:
+		p.rule(3)
 		//TODO no mas tokens o error
 		return
 	}
@@ -47,14 +104,16 @@ func (p *Parser) P() {
 	if !(t == token.FUNCTION || t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
 		t == token.WRITE || t == token.READ || t == token.RETURN) { //FIRST(P)
 		//error
+		fmt.Println("Error -1")
 		return
 	}
 	p.P()
 }
 
-func (p *Parser) Decl() {
+func (p *ParserExec) Decl() {
 	switch p.lookahead.Kind {
 	case token.IF:
+		p.rule(4)
 		p.match(token.IF, nil)
 		if p.lookahead.Kind != token.ABRIR_PAR {
 			//error
@@ -62,9 +121,10 @@ func (p *Parser) Decl() {
 		}
 		p.match(token.ABRIR_PAR, nil)
 		t := p.lookahead.Kind
-		if !(t == token.ARITM ||
-			(t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG)) {
-			//if not FIRST(Expr) error
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			//if not FIRST(Expr)
 			return
 		}
 		p.Expr()
@@ -75,14 +135,20 @@ func (p *Parser) Decl() {
 		p.match(token.CERRAR_PAR, nil)
 		t = p.lookahead.Kind
 		if !(t == token.ID || t == token.WRITE || t == token.READ || t == token.RETURN) {
+			fmt.Println("Error -1")
 			//if not FIRST(Sent) error
 			return
 		}
 		p.Sent()
+
 	case token.LET:
+		p.rule(5)
 		p.match(token.LET, nil)
-		if p.lookahead.Kind != 0 { //first
-			//error
+		t := p.lookahead.Kind
+		if !(t == token.ID || t == token.INT || t == token.FLOAT || t == token.BOOLEAN ||
+			t == token.STRING) {
+			//if not FIRST(TipoDecl) & not First(id)
+			fmt.Println("Error -1")
 			return
 		}
 		p.TipoDecl()
@@ -96,16 +162,19 @@ func (p *Parser) Decl() {
 			return
 		}
 		p.match(token.PUNTOYCOMA, nil)
+
 	case token.DO:
+		p.rule(6)
 		p.match(token.DO, nil)
-		if p.lookahead.Kind != 0 { //first
-			//error
+		if p.lookahead.Kind != token.ABRIR_CORCH {
+			//if not FIRST(WhileBody) then error
 			return
 		}
 		p.WhileBody()
 	default:
 		t := p.lookahead.Kind
 		if t == token.ID || t == token.WRITE || t == token.READ || t == token.RETURN {
+			p.rule(7)
 			//if FIRST(Sent)
 			p.Sent()
 		} else {
@@ -116,22 +185,33 @@ func (p *Parser) Decl() {
 
 }
 
-func (p *Parser) TipoDecl() {
-	if p.lookahead.Kind == 0 { //first
+func (p *ParserExec) TipoDecl() {
+	t := p.lookahead.Kind
+	if t == token.INT || t == token.FLOAT || t == token.BOOLEAN || t == token.STRING {
+		//if FIRST(Tipo)
+		p.rule(8)
 		p.Tipo()
-	} else { //lambda next
+	} else if t != token.ID {
+		p.rule(9)
+		//lambda. FOLLOW(TipoDecl)
+	} else {
+		//error
+		return
 	}
-	//error
 }
 
-func (p *Parser) WhileBody() {
+func (p *ParserExec) WhileBody() {
+	p.rule(10)
 	if p.lookahead.Kind != token.ABRIR_CORCH {
 		//error
 		return
 	}
 	p.match(token.ABRIR_CORCH, nil)
-	if p.lookahead.Kind != 0 { //first
-		//error
+	t := p.lookahead.Kind
+	if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
+		t == token.WRITE || t == token.READ || t == token.RETURN ||
+		t == token.CERRAR_CORCH) {
+		//if not FIRST(FuncBody) & not FIRST(})
 		return
 	}
 	p.FuncBody()
@@ -150,8 +230,11 @@ func (p *Parser) WhileBody() {
 		return
 	}
 	p.match(token.ABRIR_PAR, nil)
-	if p.lookahead.Kind != 0 { //first
-		//error
+	t = p.lookahead.Kind
+	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+		//if not FIRST(Expr)
 		return
 	}
 	p.Expr()
@@ -167,48 +250,69 @@ func (p *Parser) WhileBody() {
 	p.match(token.PUNTOYCOMA, nil)
 }
 
-func (p *Parser) Expr() {
-	if p.lookahead.Kind != 0 { //first
-		//error
+func (p *ParserExec) Expr() {
+	p.rule(11)
+	t := p.lookahead.Kind
+	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+		//if not FIRST(ExprRel)
 		return
 	}
 	p.ExpRel()
-	if p.lookahead.Kind != 0 { //first
-		//error
+	t = p.lookahead.Kind
+	if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
+		t == token.PUNTOYCOMA || t == token.COMA) {
+		fmt.Println("error 11")
 		return
 	}
 	p.Expr2()
 }
 
-func (p *Parser) Expr2() {
-	if p.lookahead.Kind == token.LOGICO && p.lookahead.Attr == token.LOG_AND {
+func (p *ParserExec) Expr2() {
+	t := p.lookahead.Kind
+	if t == token.LOGICO && p.lookahead.Attr == token.LOG_AND {
+		p.rule(12)
 		p.match(token.LOGICO, token.LOG_AND)
-	} else { //lambda or error
+	} else if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
+		t == token.PUNTOYCOMA || t == token.COMA) {
+		p.rule(13) //lambda
+	} else {
+		fmt.Println("error 12/13")
+		return
 	}
-
 }
 
-func (p *Parser) ExpRel() {
-	if p.lookahead.Kind != 0 { //first
-		//error
+func (p *ParserExec) ExpRel() {
+	p.rule(14)
+	t := p.lookahead.Kind
+	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+		//if not FIRST(AritExp)
 		return
 	}
 	p.AritExp()
-	if p.lookahead.Kind != 0 { //first
-		//error
+	t = p.lookahead.Kind
+	if !(t == token.RELAC || t == token.LOGICO || t == token.ARITM || t == token.COMA ||
+		t == token.PUNTOYCOMA || t == token.CERRAR_PAR) {
+		fmt.Println("error 14")
 		return
 	}
 	p.ExpRel2()
 }
-func (p *Parser) ExpRel2() {
+func (p *ParserExec) ExpRel2() {
 	switch p.lookahead.Kind {
 	case token.RELAC:
 		switch p.lookahead.Attr {
 		case token.REL_EQ:
+			p.rule(15)
 			p.match(token.RELAC, token.REL_EQ)
 		case token.REL_NOTEQ:
+			p.rule(16)
 			p.match(token.RELAC, token.REL_NOTEQ)
 		default: //error
+			fmt.Println("error 15/16")
 			return
 		}
 		if p.lookahead.Kind != 0 { //first
@@ -221,421 +325,548 @@ func (p *Parser) ExpRel2() {
 			return
 		}
 		p.ExpRel2()
-	default: //lambda check
-
+	case token.ARITM, token.COMA, token.PUNTOYCOMA, token.LOGICO:
+		p.rule(17)
+	default:
+		fmt.Println("error 17")
 	}
 }
 
-func (p *Parser) AritExp() {
-	if p.lookahead.Kind != 0 { //first
-		//error
+func (p *ParserExec) AritExp() {
+	p.rule(18)
+	t := p.lookahead.Kind
+	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+		//if not FIRST(Term)
 		return
 	}
 	p.Term()
-
-	if p.lookahead.Kind != 0 { //first
+	t = p.lookahead.Kind
+	if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
+		t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
 		//error
+		fmt.Println("error 18")
 		return
 	}
 	p.AritExp2()
 }
 
-func (p *Parser) AritExp2() {
+func (p *ParserExec) AritExp2() {
 	switch p.lookahead.Kind {
 	case token.ARITM:
 		switch p.lookahead.Attr {
 		case token.ARIT_MINUS:
+			p.rule(19)
 			p.match(token.ARITM, token.ARIT_MINUS)
 		case token.ARIT_PLUS:
+			p.rule(20)
 			p.match(token.ARITM, token.ARIT_PLUS)
 		default: //error
 			return
 		}
-		if p.lookahead.Kind != 0 { //first
+		t := p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			//if not FIRST(Term)
+			return
+		}
+		p.Term()
+		t = p.lookahead.Kind
+		if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
+			t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
 			//error
+			fmt.Println("error 19/20")
 			return
 		}
 		p.AritExp2()
-	default: //follow lambda
-		//TODO
+	case token.RELAC, token.LOGICO, token.CERRAR_PAR, token.PUNTOYCOMA, token.COMA:
+		p.rule(21) //lambda
+	default:
+		fmt.Printf("error 21")
 	}
 }
 
-func (p *Parser) Term() {
+func (p *ParserExec) Term() {
 	switch p.lookahead.Kind {
 	case token.LOGICO:
 		if p.lookahead.Attr != token.LOG_NEG {
-			//errro
+			fmt.Println("error 22")
 			return
 		}
+		p.rule(22)
 		p.match(token.LOGICO, token.LOG_NEG)
-		if p.lookahead.Kind != 0 { //first
-			//error
+		t := p.lookahead.Kind
+		if !(t == token.TRUE || t == token.FALSE || t == token.INT_LITERAL ||
+			t == token.REAL_LITERAL || t == token.STRING_LITERAL ||
+			t == token.ABRIR_PAR || t == token.ID) {
+			fmt.Println("error 22")
 			return
 		}
 		p.Term3()
 	case token.ARITM:
 		switch p.lookahead.Attr {
 		case token.ARIT_PLUS:
+			p.rule(23)
 			p.match(token.ARITM, token.ARIT_PLUS)
 		case token.ARIT_MINUS:
+			p.rule(24)
 			p.match(token.ARITM, token.ARIT_MINUS)
 		default:
-			//errro
+			fmt.Println("error 23/24")
 			return
 		}
-		if p.lookahead.Kind != 0 { //first
-			//error
-			return
+		switch p.lookahead.Kind {
+		case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
+			token.ABRIR_PAR:
+			p.rule(25)
+			p.Term2()
+		default:
+			fmt.Println("error 25")
 		}
-		p.Term2()
 	}
-
 }
 
-func (p *Parser) Term3() {
+func (p *ParserExec) Term3() {
 	switch p.lookahead.Kind {
 	case token.TRUE:
+		p.rule(26)
 		p.match(token.TRUE, nil)
 	case token.FALSE:
+		p.rule(27)
 		p.match(token.FALSE, nil)
-	default:
-		if p.lookahead.Kind != 0 { //first
-			//error
-			return
-		}
+	case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
+		token.ABRIR_PAR:
+		p.rule(28)
 		p.Term2()
+	default:
+		fmt.Println("error 28")
+		return
 	}
-
 }
 
-func (p *Parser) Term2() {
+func (p *ParserExec) Term2() {
 	switch p.lookahead.Kind {
 	case token.INT_LITERAL:
+		p.rule(29)
 		p.match(token.INT_LITERAL, nil)
 	case token.REAL_LITERAL:
+		p.rule(30)
 		p.match(token.REAL_LITERAL, nil)
 	case token.ID:
+		p.rule(31)
 		p.match(token.ID, nil)
-		if p.lookahead.Kind != 0 { //first
-			//error
+		t := p.lookahead.Kind
+		if !(t == token.ABRIR_PAR || t == token.CERRAR_PAR || t == token.ARITM ||
+			t == token.RELAC || t == token.LOGICO || t == token.COMA ||
+			t == token.PUNTOYCOMA) {
+			fmt.Println("error 31")
 			return
 		}
 		p.FactorId()
 	case token.STRING_LITERAL:
+		p.rule(32)
 		p.match(token.STRING_LITERAL, nil)
 	case token.ABRIR_PAR:
+		p.rule(33)
 		p.match(token.ABRIR_PAR, nil)
-		if p.lookahead.Kind != 0 { //first
-			//error
+		t := p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			fmt.Println("error 33")
 			return
 		}
 		p.Expr()
 		if p.lookahead.Kind != token.CERRAR_PAR {
-			//error
+			fmt.Println("error 33")
 			return
 		}
 		p.match(token.CERRAR_PAR, nil)
 	}
 }
 
-func (p *Parser) FactorId() {
-	if p.lookahead.Kind == token.ABRIR_PAR {
+func (p *ParserExec) FactorId() {
+	switch p.lookahead.Kind {
+	case token.ABRIR_PAR:
+		p.rule(34)
 		p.match(token.ABRIR_PAR, nil)
-		if p.lookahead.Kind != 0 { //first
-			//error
+		switch p.lookahead.Kind {
+		case token.ARITM, token.LOGICO, token.CERRAR_PAR:
+			if p.lookahead.Kind == token.LOGICO {
+				if p.lookahead.Attr != token.LOG_NEG {
+					fmt.Println("error 34")
+					return
+				}
+			}
+			p.ParamList()
+		default:
+			fmt.Println("error 34")
 			return
 		}
-		p.ParamList()
 		if p.lookahead.Kind != token.CERRAR_PAR {
-			//errr
+			fmt.Println("error 34")
 			return
 		}
 		p.match(token.CERRAR_PAR, nil)
-	} else {
-		//lambda todo
 
+	case token.LOGICO, token.ARITM, token.RELAC, token.COMA, token.PUNTOYCOMA,
+		token.CERRAR_PAR:
+		p.rule(35)
+	default:
+		fmt.Println("error 35")
 	}
 }
-func (p *Parser) Tipo() {
-	t := p.lookahead.Kind
-	if t == token.STRING || t == token.INT || t == token.FLOAT || t == token.BOOLEAN {
-		p.match(t, nil)
-		return
-	}
-	//error
-}
-func (p *Parser) DecFunc() {
+
+func (p *ParserExec) DecFunc() {
+	p.rule(36)
 	if p.lookahead.Kind != token.FUNCTION {
-		//error
+		fmt.Println("error 36")
 		return
 	}
 	p.match(token.FUNCTION, nil)
 	t := p.lookahead.Kind
-	if !(t == token.STRING || t == token.VOID || t == token.INT || t == token.FLOAT || t == token.BOOLEAN) {
-		//if not FIRST(TipoFunc) error
+	if !(t == token.STRING || t == token.VOID || t == token.INT ||
+		t == token.FLOAT || t == token.BOOLEAN) {
+		fmt.Println("error 36")
 		return
 	}
 	p.TipoFunc()
 	if p.lookahead.Kind != token.ID {
-		//error
+		fmt.Println("error 36")
 		return
 	}
 	p.match(token.ID, nil)
 	if p.lookahead.Kind != token.ABRIR_PAR {
-		//error
+		fmt.Println("error 36")
 		return
 	}
 	p.match(token.ABRIR_PAR, nil)
 	t = p.lookahead.Kind
-	if !(t == token.STRING || t == token.VOID || t == token.INT || t == token.FLOAT || t == token.BOOLEAN) {
-		//if not FIRST(FuncParams) error
+	if !(t == token.STRING || t == token.VOID || t == token.INT ||
+		t == token.FLOAT || t == token.BOOLEAN) {
+		fmt.Println("error 36")
 		return
 	}
 	p.FuncParams()
 	if p.lookahead.Kind != token.CERRAR_PAR {
-		//error
+		fmt.Println("error 36")
 		return
 	}
 	p.match(token.CERRAR_PAR, nil)
 	if p.lookahead.Kind != token.ABRIR_CORCH {
-		//error
+		fmt.Println("error 36")
 		return
 	}
 	p.match(token.ABRIR_CORCH, nil)
 	t = p.lookahead.Kind
 	if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
-		t == token.WRITE || t == token.READ || t == token.RETURN || t == token.CERRAR_CORCH) {
-		//FIRST(FuncBody) & FIRST(})
-		//erro
+		t == token.WRITE || t == token.READ || t == token.RETURN ||
+		t == token.CERRAR_CORCH) {
+		fmt.Println("error 36")
 		return
 	}
 	p.FuncBody()
 	if p.lookahead.Kind != token.CERRAR_CORCH {
-		//error
+		fmt.Println("error 36")
 		return
 	}
 	p.match(token.CERRAR_CORCH, nil)
 }
 
-func (p *Parser) TipoFunc() {
+func (p *ParserExec) TipoFunc() {
 	switch p.lookahead.Kind {
 	case token.VOID:
+		p.rule(38)
 		p.match(token.VOID, nil)
 	case token.STRING, token.INT, token.FLOAT, token.BOOLEAN:
+		p.rule(37)
 		p.Tipo()
 	default:
-		//error
+		fmt.Println("error 37/38")
 		return
 	}
 }
 
-func (p *Parser) FuncParams() {
+func (p *ParserExec) FuncParams() {
 	switch p.lookahead.Kind {
 	case token.INT, token.FLOAT, token.BOOLEAN, token.STRING: //FIRST(Tipo)
+		p.rule(39)
 		p.Tipo()
 		if p.lookahead.Kind != token.ID {
-			//error
+			fmt.Println("error 39")
 			return
 		}
 		p.match(token.ID, nil)
-		if p.lookahead.Kind == token.COMA || p.lookahead.Kind == token.CERRAR_PAR { //first FuncParams2
+		if p.lookahead.Kind == token.COMA || p.lookahead.Kind == token.CERRAR_PAR {
+			//first FuncParams2
 			p.FuncParams2()
 		} else {
-			// error
+			fmt.Println("error 39")
 			return
 		}
-	case token.CERRAR_PAR:
-		//follow={)} -> trans lambda
+	case token.VOID:
+		p.match(token.VOID, nil)
+		p.rule(40)
 	default:
-		//error
-		return
+		fmt.Println("error 40")
 	}
 }
 
-func (p *Parser) FuncParams2() {
+func (p *ParserExec) FuncParams2() {
 	switch p.lookahead.Kind {
 	case token.COMA:
 		p.match(token.COMA, nil)
+		p.rule(41)
 		switch p.lookahead.Kind {
 		case token.INT, token.FLOAT, token.BOOLEAN, token.STRING: //FIRST(Tipo)
 			p.Tipo()
 			if p.lookahead.Kind != token.ID {
-				//error
+				fmt.Println("error 41")
 				return
 			}
 			if !(p.lookahead.Kind == token.COMA || p.lookahead.Kind == token.CERRAR_PAR) {
-				//error
+				fmt.Println("error 41")
 				return
 			}
 			p.FuncParams2()
 		default:
-			//error
+			fmt.Println("error 41")
 			return
 		}
 	case token.CERRAR_PAR:
-		//follow=)
+		p.rule(42)
 	default:
-		//error
+		fmt.Println("error 42")
 		return
 	}
 }
 
-func (p *Parser) FuncBody() {
+func (p *ParserExec) Tipo() {
 	switch p.lookahead.Kind {
-	case token.IF, token.LET, token.DO, token.ID, token.READ, token.WRITE, token.RETURN: //first Decl
+	case token.INT:
+		p.match(token.INT, nil)
+		p.rule(43)
+	case token.FLOAT:
+		p.match(token.FLOAT, nil)
+		p.rule(44)
+	case token.BOOLEAN:
+		p.match(token.BOOLEAN, nil)
+		p.rule(45)
+	case token.STRING:
+		p.match(token.STRING, nil)
+		p.rule(46)
+	default:
+		fmt.Println("error 43-46")
+	}
+}
+
+func (p *ParserExec) FuncBody() {
+	switch p.lookahead.Kind {
+	case token.IF, token.LET, token.DO, token.ID, token.READ, token.WRITE,
+		token.RETURN: //first Decl
+		p.rule(47)
 		p.Decl()
-		if p.lookahead.Kind == 0 { //first Funcbody
-			p.FuncBody()
+		t := p.lookahead.Kind
+		if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
+			t == token.WRITE || t == token.READ || t == token.RETURN ||
+			t == token.CERRAR_CORCH) {
+			fmt.Println("error 47")
+			return
 		}
+		p.FuncBody()
+
 	case token.CERRAR_CORCH:
-		//FOLLOW=}
+		p.rule(48)
 
 	default:
-		//error
+		fmt.Println("error 48")
 		return
 	}
 }
-func (p *Parser) Exprlist() {
 
-}
-
-func (p *Parser) Funcbody() {
-
-}
-
-func (p *Parser) Sent() {
-
-	switch p.lookahead.Kind {
-	case token.ID:
-		{
-			if !p.match(token.ID, nil) {
-				//error
-				return
-			}
-			p.Sent2()
-		}
-	case token.WRITE:
-		{
-			if !p.match(token.WRITE, nil) {
-				//error
-				return
-			}
-			p.Expr()
-			if !p.match(token.PUNTOYCOMA, nil) {
-				//error
-				return
-			}
-		}
-	case token.READ:
-		{
-			if !p.match(token.READ, nil) {
-				//error
-				return
-			}
-			if !p.match(token.ID, nil) {
-				//error
-				return
-			}
-			if !p.match(token.PUNTOYCOMA, nil) {
-				//error
-				return
-			}
-		}
-	case token.RETURN:
-		{
-			if !p.match(token.RETURN, nil) {
-				//error
-				return
-			}
-			p.ReturnExp()
-			if !p.match(token.PUNTOYCOMA, nil) {
-				//error
-				return
-			}
-		}
-	default: //ERROR
-	}
-
-}
-
-func (p *Parser) ParamList() {
-	if p.lookahead.Attr == 0 { //TODO Exp
+func (p *ParserExec) ParamList() {
+	t := p.lookahead.Kind
+	if t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+		t == token.STRING_LITERAL || t == token.ABRIR_PAR {
+		p.rule(49)
 		p.Expr()
+		t = p.lookahead.Kind
+		if !(t == token.COMA || t == token.CERRAR_PAR) {
+			fmt.Println("error 49")
+			return
+		}
 		p.ParamList2()
 
 	} else if p.lookahead.Kind == token.CERRAR_PAR {
-		//FOLLOW(ParamList)={)}
+		p.rule(50)
 	} else {
-		//error
+		fmt.Println("error 50")
 		return
 	}
-
 }
 
-func (p *Parser) ParamList2() {
-
+func (p *ParserExec) ParamList2() {
 	switch p.lookahead.Kind {
 	case token.COMA:
-		if !p.match(token.COMA, nil) {
+		p.match(token.COMA, nil)
+		p.rule(51)
+		t := p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			//if not FIRST(Expr)
+			return
+		}
+		p.Expr()
+		t = p.lookahead.Kind
+		if !(t == token.COMA || t == token.CERRAR_PAR) {
+			fmt.Println("error 51")
+			return
+		}
+		p.ParamList2()
+	case token.CERRAR_PAR: //FOLLOW={)
+		p.rule(52)
+	default:
+		fmt.Println("error 52")
+	}
+}
+
+func (p *ParserExec) Sent() {
+	switch p.lookahead.Kind {
+	case token.ID:
+		p.match(token.ID, nil)
+		p.rule(53)
+		//todo first
+		p.Sent2()
+
+	case token.WRITE:
+		p.match(token.WRITE, nil)
+		p.rule(54)
+
+		//todo first
+		p.Expr()
+		p.match(token.PUNTOYCOMA, nil)
+
+	case token.READ:
+		p.rule(55)
+		if !p.match(token.READ, nil) {
 			//error
 			return
 		}
-		p.Expr()
-		p.ParamList2()
-	case token.CERRAR_PAR: //FOLLOW={)
+		if !p.match(token.ID, nil) {
+			//error
+			return
+		}
+		if !p.match(token.PUNTOYCOMA, nil) {
+			//error
+			return
+		}
+		p.rule(-1) //TODO
+
+	case token.RETURN:
+		p.rule(56)
+		if !p.match(token.RETURN, nil) {
+			//error
+			return
+		}
+		p.ReturnExp()
+		if !p.match(token.PUNTOYCOMA, nil) {
+			//error
+			return
+		}
 
 	default:
-		//error
-		return
+		fmt.Println("error 53-56")
 	}
+
 }
-
-func (p *Parser) Sent2() {
-
-	if p.lookahead.Kind == 0 { //TODO Exp
-		p.Expr()
-		if !p.getToken() || !p.match(token.PUNTOYCOMA, nil) {
-			//TODO ERROR
+func (p *ParserExec) Sent2() {
+	if p.lookahead.Kind == token.ASIG {
+		switch p.lookahead.Attr {
+		case token.ASIG_SIMPLE:
+			p.match(token.ASIG, token.ASIG_SIMPLE)
+			p.rule(57)
+		case token.ASIG_MULT:
+			p.match(token.ASIG, token.ASIG_MULT)
+			p.rule(58)
+		default:
+			fmt.Println("error 57/58")
 			return
 		}
 
-	} else if p.lookahead.Kind == token.ASIG && p.lookahead.Attr == token.ASIG_MULT {
-		p.Expr()
-
-		if !p.getToken() || !p.match(token.CERRAR_PAR, nil) {
-			//TODO ERROR
+		t := p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			fmt.Println("error 57/58")
 			return
 		}
+		p.Expr()
+		if p.lookahead.Kind != token.PUNTOYCOMA {
+			fmt.Println("error 57")
+			return
+		}
+		p.match(token.PUNTOYCOMA, nil)
+
 	} else if p.lookahead.Kind == token.ABRIR_PAR {
+		p.match(token.ABRIR_PAR, nil)
+		p.rule(59)
+		switch p.lookahead.Kind {
+		case token.ARITM, token.LOGICO, token.CERRAR_PAR:
+			if p.lookahead.Kind == token.LOGICO {
+				if p.lookahead.Attr != token.LOG_NEG {
+					fmt.Println("error 59")
+					return
+				}
+			}
+		default:
+			fmt.Println("error 59")
+			return
+		}
+
 		p.ParamList()
-		if !p.getToken() || !p.match(token.CERRAR_PAR, nil) {
-			//TODO ERROR
+		if p.lookahead.Kind != token.CERRAR_PAR {
+			fmt.Println("error 59")
 			return
 		}
-		if !p.getToken() || !p.match(token.PUNTOYCOMA, nil) {
-			//TODO ERROR
+		p.match(token.CERRAR_PAR, nil)
+
+		if p.lookahead.Kind != token.PUNTOYCOMA {
+			fmt.Println("error 59")
 			return
 		}
+		p.match(token.PUNTOYCOMA, nil)
 	} else {
-		//ERROR
+		fmt.Println("error 57-59")
 	}
 }
-func (p *Parser) ReturnExp() {
+func (p *ParserExec) ReturnExp() {
 	switch p.lookahead.Kind {
 	case token.LOGICO:
 		if p.lookahead.Attr != token.LOG_NEG {
-			//error
+			fmt.Println("error 60/61")
 			return
 		}
-	case token.ARITM:
+	case token.ARITM, token.INT_LITERAL, token.REAL_LITERAL, token.STRING_LITERAL,
+		token.ID, token.ABRIR_PAR:
 		break
 	case token.PUNTOYCOMA:
-		//follow={;}
+		p.rule(61)
 		return
 	default:
-		//error
-		errors.NewError(errors.K_SINTACTICAL, 0, "error")
+		fmt.Println("error 61")
+		return
+	}
+	p.rule(60)
+	t := p.lookahead.Kind
+	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+		//if not FIRST(Expr
+		fmt.Println("error 60")
 		return
 	}
 	p.Expr()
