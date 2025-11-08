@@ -122,7 +122,7 @@ func (s *Lexer) nextChar() {
 // retreived one by one with 's.GetToken()'.
 func (s *Lexer) Lexical() (token.Token, bool) {
 	var ok bool = false
-	var token token.Token
+	var tk token.Token
 	for !ok && !s.EOF {
 		transition, transOk:= s.transitions.Find(s.currentChar)
 		if transition == nil {
@@ -136,18 +136,18 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 			errors.NewError(errors.K_LEXICAL, errors.C_INVALID_CHAR, s.currentChar)
 			s.reset()
 			s.nextChar()
-			return token, false //TODO
+			return tk, false //TODO
 		}
-		token, ok = transition.Action()
+		tk, ok = transition.Action()
 		if s.transitions.isFinal() {
 			if ok {
-				s.tokens = append(s.tokens, token)
+				s.tokens = append(s.tokens, tk)
 			}
 			s.reset()
 			break
 		}
 	}
-	return token, true
+	return tk, true
 }
 
 func (s *Lexer) reset() {

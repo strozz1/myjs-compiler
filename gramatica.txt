@@ -122,7 +122,7 @@ Tipo -> string          ////46
 FuncBody -> Decl FuncBody       ////47
 FuncBody -> lambda              ////48
 
-//// FIRST(ParamList)={ lambda, !,+,-}
+//// FIRST(ParamList)={ lambda ! + - intVal realVal id stringVal ( }
 //// FOLLOW(ParamList)={)}
 ParamList -> Expr ParamList2        ////49
 ParamList -> lambda                 ////50
@@ -139,7 +139,9 @@ Sent -> write Expr ;            ////54
 Sent -> read id ;               ////55
 Sent -> return ReturnExp ;      ////56
 
-//// FIRST(Sent2)={ =,*=, ( ,!,+,-}
+
+////ARREGLAR FIRST
+//// FIRST(Sent2)={ =,*=, (}
 //// FOLLOW(Sent2)={if, let do, id, write, read, }, function, return }
 Sent2 -> = Expr ;           ////57
 Sent2 -> *= Expr ;          ////58

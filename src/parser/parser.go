@@ -48,11 +48,11 @@ func (p *ParserExec) rule(i int) {
 }
 
 func (p *Parser) Write(w *bufio.Writer) {
-	if DEBUG{
+	if DEBUG {
 		fmt.Println("DEBUG: Writting parse to output")
 	}
 
-	fmt.Fprintf(w,"D ")
+	fmt.Fprintf(w, "D ")
 	for _, i := range p.parserExec.list {
 		fmt.Fprintf(w, "%d ", i)
 	}
@@ -92,19 +92,20 @@ func (p *ParserExec) P() {
 	case token.LET, token.ID, token.IF, token.DO, token.READ, token.WRITE, token.RETURN:
 		p.rule(1)
 		p.Decl()
-	case token.FUNCTION: //FIRST(DecFunc)
+	case token.FUNCTION:
 		p.rule(2)
 		p.DecFunc()
-	default:
+	case token.EOF:
 		p.rule(3)
-		//TODO no mas tokens o error
+		return
+	default:
+		fmt.Println("error 3")
 		return
 	}
 	t := p.lookahead.Kind
 	if !(t == token.FUNCTION || t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
-		t == token.WRITE || t == token.READ || t == token.RETURN) { //FIRST(P)
-		//error
-		fmt.Println("Error -1")
+		t == token.WRITE || t == token.READ || t == token.RETURN || p.lexer.EOF) {
+		fmt.Println("Error 1")
 		return
 	}
 	p.P()
@@ -116,7 +117,7 @@ func (p *ParserExec) Decl() {
 		p.rule(4)
 		p.match(token.IF, nil)
 		if p.lookahead.Kind != token.ABRIR_PAR {
-			//error
+			fmt.Println("error 4")
 			return
 		}
 		p.match(token.ABRIR_PAR, nil)
@@ -124,19 +125,18 @@ func (p *ParserExec) Decl() {
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			//if not FIRST(Expr)
+			fmt.Println("error 4")
 			return
 		}
 		p.Expr()
 		if p.lookahead.Kind != token.CERRAR_PAR {
-			//error
+			fmt.Println("error 4")
 			return
 		}
 		p.match(token.CERRAR_PAR, nil)
 		t = p.lookahead.Kind
 		if !(t == token.ID || t == token.WRITE || t == token.READ || t == token.RETURN) {
-			fmt.Println("Error -1")
-			//if not FIRST(Sent) error
+			fmt.Println("Error 4")
 			return
 		}
 		p.Sent()
@@ -147,18 +147,17 @@ func (p *ParserExec) Decl() {
 		t := p.lookahead.Kind
 		if !(t == token.ID || t == token.INT || t == token.FLOAT || t == token.BOOLEAN ||
 			t == token.STRING) {
-			//if not FIRST(TipoDecl) & not First(id)
-			fmt.Println("Error -1")
+			fmt.Println("Error 5")
 			return
 		}
 		p.TipoDecl()
 		if p.lookahead.Kind != token.ID {
-			//error
+			fmt.Println("error 5")
 			return
 		}
 		p.match(token.ID, nil)
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			//error
+			fmt.Println("error 5")
 			return
 		}
 		p.match(token.PUNTOYCOMA, nil)
@@ -167,7 +166,7 @@ func (p *ParserExec) Decl() {
 		p.rule(6)
 		p.match(token.DO, nil)
 		if p.lookahead.Kind != token.ABRIR_CORCH {
-			//if not FIRST(WhileBody) then error
+			fmt.Println("error 6")
 			return
 		}
 		p.WhileBody()
@@ -175,10 +174,9 @@ func (p *ParserExec) Decl() {
 		t := p.lookahead.Kind
 		if t == token.ID || t == token.WRITE || t == token.READ || t == token.RETURN {
 			p.rule(7)
-			//if FIRST(Sent)
 			p.Sent()
 		} else {
-			//error
+			fmt.Println("error 7")
 			return
 		}
 	}
@@ -193,9 +191,8 @@ func (p *ParserExec) TipoDecl() {
 		p.Tipo()
 	} else if t != token.ID {
 		p.rule(9)
-		//lambda. FOLLOW(TipoDecl)
 	} else {
-		//error
+		fmt.Println("error 9")
 		return
 	}
 }
@@ -203,7 +200,7 @@ func (p *ParserExec) TipoDecl() {
 func (p *ParserExec) WhileBody() {
 	p.rule(10)
 	if p.lookahead.Kind != token.ABRIR_CORCH {
-		//error
+		fmt.Println("error 10")
 		return
 	}
 	p.match(token.ABRIR_CORCH, nil)
@@ -211,22 +208,22 @@ func (p *ParserExec) WhileBody() {
 	if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
 		t == token.WRITE || t == token.READ || t == token.RETURN ||
 		t == token.CERRAR_CORCH) {
-		//if not FIRST(FuncBody) & not FIRST(})
+		fmt.Println("error 10")
 		return
 	}
 	p.FuncBody()
 	if p.lookahead.Kind != token.CERRAR_CORCH {
-		//error
+		fmt.Println("error 10")
 		return
 	}
 	p.match(token.CERRAR_CORCH, nil)
 	if p.lookahead.Kind != token.WHILE {
-		//error
+		fmt.Println("error 10")
 		return
 	}
 	p.match(token.WHILE, nil)
 	if p.lookahead.Kind != token.ABRIR_PAR {
-		//error
+		fmt.Println("error 10")
 		return
 	}
 	p.match(token.ABRIR_PAR, nil)
@@ -234,17 +231,17 @@ func (p *ParserExec) WhileBody() {
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		//if not FIRST(Expr)
+		fmt.Println("error 10")
 		return
 	}
 	p.Expr()
 	if p.lookahead.Kind != token.CERRAR_PAR {
-		//error
+		fmt.Println("error 10")
 		return
 	}
 	p.match(token.CERRAR_PAR, nil)
 	if p.lookahead.Kind != token.PUNTOYCOMA {
-		//error
+		fmt.Println("error 10")
 		return
 	}
 	p.match(token.PUNTOYCOMA, nil)
@@ -256,14 +253,15 @@ func (p *ParserExec) Expr() {
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		//if not FIRST(ExprRel)
+		fmt.Println("error 11")
 		return
 	}
+
 	p.ExpRel()
 	t = p.lookahead.Kind
 	if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
 		t == token.PUNTOYCOMA || t == token.COMA) {
-		fmt.Println("error 11")
+		fmt.Println("error 11b")
 		return
 	}
 	p.Expr2()
@@ -274,8 +272,8 @@ func (p *ParserExec) Expr2() {
 	if t == token.LOGICO && p.lookahead.Attr == token.LOG_AND {
 		p.rule(12)
 		p.match(token.LOGICO, token.LOG_AND)
-	} else if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
-		t == token.PUNTOYCOMA || t == token.COMA) {
+	} else if t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
+		t == token.PUNTOYCOMA || t == token.COMA {
 		p.rule(13) //lambda
 	} else {
 		fmt.Println("error 12/13")
@@ -289,9 +287,10 @@ func (p *ParserExec) ExpRel() {
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		//if not FIRST(AritExp)
+		fmt.Println("error 14")
 		return
 	}
+
 	p.AritExp()
 	t = p.lookahead.Kind
 	if !(t == token.RELAC || t == token.LOGICO || t == token.ARITM || t == token.COMA ||
@@ -311,21 +310,26 @@ func (p *ParserExec) ExpRel2() {
 		case token.REL_NOTEQ:
 			p.rule(16)
 			p.match(token.RELAC, token.REL_NOTEQ)
-		default: //error
+		default:
 			fmt.Println("error 15/16")
 			return
 		}
-		if p.lookahead.Kind != 0 { //first
-			//error
+		t := p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			fmt.Println("error 15/16")
 			return
 		}
 		p.AritExp()
-		if p.lookahead.Kind != 0 { //first
-			//error
+		t = p.lookahead.Kind
+		if !(t == token.RELAC || t == token.LOGICO || t == token.ARITM || t == token.COMA ||
+			t == token.PUNTOYCOMA || t == token.CERRAR_PAR) {
+			fmt.Println("error 15/16b")
 			return
 		}
 		p.ExpRel2()
-	case token.ARITM, token.COMA, token.PUNTOYCOMA, token.LOGICO:
+	case token.ARITM, token.COMA, token.PUNTOYCOMA, token.LOGICO, token.CERRAR_PAR:
 		p.rule(17)
 	default:
 		fmt.Println("error 17")
@@ -338,15 +342,14 @@ func (p *ParserExec) AritExp() {
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		//if not FIRST(Term)
+		fmt.Println("error 18/a")
 		return
 	}
 	p.Term()
 	t = p.lookahead.Kind
 	if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 		t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
-		//error
-		fmt.Println("error 18")
+		fmt.Println("error 18b")
 		return
 	}
 	p.AritExp2()
@@ -362,21 +365,21 @@ func (p *ParserExec) AritExp2() {
 		case token.ARIT_PLUS:
 			p.rule(20)
 			p.match(token.ARITM, token.ARIT_PLUS)
-		default: //error
+		default:
+			fmt.Println("error 20")
 			return
 		}
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			//if not FIRST(Term)
+			fmt.Println("error 19")
 			return
 		}
 		p.Term()
 		t = p.lookahead.Kind
 		if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 			t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
-			//error
 			fmt.Println("error 19/20")
 			return
 		}
@@ -420,11 +423,16 @@ func (p *ParserExec) Term() {
 		switch p.lookahead.Kind {
 		case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
 			token.ABRIR_PAR:
-			p.rule(25)
 			p.Term2()
 		default:
-			fmt.Println("error 25")
+			fmt.Println("error 23/24")
 		}
+	case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
+		token.ABRIR_PAR:
+		p.rule(25)
+		p.Term2()
+	default:
+		fmt.Println("error 23/24")
 	}
 }
 
@@ -493,20 +501,21 @@ func (p *ParserExec) FactorId() {
 		p.rule(34)
 		p.match(token.ABRIR_PAR, nil)
 		switch p.lookahead.Kind {
-		case token.ARITM, token.LOGICO, token.CERRAR_PAR:
+		case token.ARITM, token.LOGICO, token.CERRAR_PAR, token.ID, token.INT_LITERAL,
+			token.REAL_LITERAL, token.STRING_LITERAL:
 			if p.lookahead.Kind == token.LOGICO {
 				if p.lookahead.Attr != token.LOG_NEG {
-					fmt.Println("error 34")
+					fmt.Println("error 34a")
 					return
 				}
 			}
 			p.ParamList()
 		default:
-			fmt.Println("error 34")
+			fmt.Println("error 34b")
 			return
 		}
 		if p.lookahead.Kind != token.CERRAR_PAR {
-			fmt.Println("error 34")
+			fmt.Println("error 34c")
 			return
 		}
 		p.match(token.CERRAR_PAR, nil)
@@ -620,14 +629,15 @@ func (p *ParserExec) FuncParams2() {
 		p.match(token.COMA, nil)
 		p.rule(41)
 		switch p.lookahead.Kind {
-		case token.INT, token.FLOAT, token.BOOLEAN, token.STRING: //FIRST(Tipo)
+		case token.INT, token.FLOAT, token.BOOLEAN, token.STRING, token.ID: //FIRST(Tipo)&id
 			p.Tipo()
 			if p.lookahead.Kind != token.ID {
-				fmt.Println("error 41")
+				fmt.Println("error 41a")
 				return
 			}
+			p.match(token.ID, nil)
 			if !(p.lookahead.Kind == token.COMA || p.lookahead.Kind == token.CERRAR_PAR) {
-				fmt.Println("error 41")
+				fmt.Println("error 41b")
 				return
 			}
 			p.FuncParams2()
@@ -717,7 +727,7 @@ func (p *ParserExec) ParamList2() {
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			//if not FIRST(Expr)
+			fmt.Println("error 51")
 			return
 		}
 		p.Expr()
@@ -739,42 +749,52 @@ func (p *ParserExec) Sent() {
 	case token.ID:
 		p.match(token.ID, nil)
 		p.rule(53)
-		//todo first
+		switch p.lookahead.Kind {
+		case token.ASIG, token.CERRAR_PAR:
+			break
+		default:
+			fmt.Println("error 53")
+			return
+		}
 		p.Sent2()
 
 	case token.WRITE:
 		p.match(token.WRITE, nil)
 		p.rule(54)
-
-		//todo first
+		t := p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			fmt.Println("error 54")
+			return
+		}
 		p.Expr()
 		p.match(token.PUNTOYCOMA, nil)
 
 	case token.READ:
 		p.rule(55)
 		if !p.match(token.READ, nil) {
-			//error
+			fmt.Println("error 55")
 			return
 		}
 		if !p.match(token.ID, nil) {
-			//error
+			fmt.Println("error 55")
 			return
 		}
 		if !p.match(token.PUNTOYCOMA, nil) {
-			//error
+			fmt.Println("error 55")
 			return
 		}
-		p.rule(-1) //TODO
 
 	case token.RETURN:
 		p.rule(56)
 		if !p.match(token.RETURN, nil) {
-			//error
+			fmt.Println("error 56")
 			return
 		}
 		p.ReturnExp()
 		if !p.match(token.PUNTOYCOMA, nil) {
-			//error
+			fmt.Println("error 55")
 			return
 		}
 
@@ -784,7 +804,8 @@ func (p *ParserExec) Sent() {
 
 }
 func (p *ParserExec) Sent2() {
-	if p.lookahead.Kind == token.ASIG {
+	switch p.lookahead.Kind {
+	case token.ASIG:
 		switch p.lookahead.Attr {
 		case token.ASIG_SIMPLE:
 			p.match(token.ASIG, token.ASIG_SIMPLE)
@@ -811,11 +832,12 @@ func (p *ParserExec) Sent2() {
 		}
 		p.match(token.PUNTOYCOMA, nil)
 
-	} else if p.lookahead.Kind == token.ABRIR_PAR {
+	case token.ABRIR_PAR:
 		p.match(token.ABRIR_PAR, nil)
 		p.rule(59)
 		switch p.lookahead.Kind {
-		case token.ARITM, token.LOGICO, token.CERRAR_PAR:
+		case token.ARITM, token.LOGICO, token.CERRAR_PAR, token.ID, token.INT_LITERAL,
+			token.REAL_LITERAL, token.STRING_LITERAL:
 			if p.lookahead.Kind == token.LOGICO {
 				if p.lookahead.Attr != token.LOG_NEG {
 					fmt.Println("error 59")
@@ -839,7 +861,7 @@ func (p *ParserExec) Sent2() {
 			return
 		}
 		p.match(token.PUNTOYCOMA, nil)
-	} else {
+	default:
 		fmt.Println("error 57-59")
 	}
 }
@@ -865,7 +887,6 @@ func (p *ParserExec) ReturnExp() {
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		//if not FIRST(Expr
 		fmt.Println("error 60")
 		return
 	}
