@@ -359,10 +359,10 @@ func (p *ParserExec) AritExp2() {
 	switch p.lookahead.Kind {
 	case token.ARITM:
 		switch p.lookahead.Attr {
-		case token.ARIT_MINUS:
+		case token.ARIT_PLUS:
 			p.rule(19)
 			p.match(token.ARITM, token.ARIT_MINUS)
-		case token.ARIT_PLUS:
+		case token.ARIT_MINUS:
 			p.rule(20)
 			p.match(token.ARITM, token.ARIT_PLUS)
 		default:
@@ -745,12 +745,13 @@ func (p *ParserExec) ParamList2() {
 }
 
 func (p *ParserExec) Sent() {
+	fmt.Printf("current %s\n",p.lookahead.Lexeme)
 	switch p.lookahead.Kind {
 	case token.ID:
 		p.match(token.ID, nil)
 		p.rule(53)
 		switch p.lookahead.Kind {
-		case token.ASIG, token.CERRAR_PAR:
+		case token.ASIG, token.ABRIR_PAR:
 			break
 		default:
 			fmt.Println("error 53")

@@ -1,7 +1,9 @@
 # Temporal TODO's
-- [ ] Error only in end state
-- [ ] Como sabe el lexer en q tabla meter
+- [X] Error only in end state
+- [x] Como sabe el lexer en q tabla meter
 - [ ] Arreglar errores
-- [ ] Verificar token format
+- [x] Verificar token format
 - [ ] Revisar TS
-- [ ] Multiple add 0,1
+- [x] Multiple add 0,1
+- [ ] Revisar Sintactico los FIRST & FOLLOWS
+- [ ] Arreglar bugs detectado en OJO.txt
