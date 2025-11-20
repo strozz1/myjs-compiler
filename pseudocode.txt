@@ -1,0 +1,440 @@
+P:
+    si lookahead ∈ FIRST(Decl):
+        aplicar regla 1
+        Decl()
+    sino si lookahead ∈ FIRST(DecFunc):
+        aplicar regla 2
+        DecFunc()
+    sino si lookahead == EOF:
+        aplicar regla 3
+        return
+    sino:
+        error
+    si lookahead ∈ FIRST(P) o {$}:
+        P()
+    sino:
+        error
+
+Decl:
+    si lookahead == IF:
+        regla 4
+        consumir IF
+        consumir "("
+        si lookahead ∈ FIRST(Expr):
+            Expr()
+        sino:
+            error
+        consumir ")"
+        si lookahead ∈ FIRST(Sent):
+            Sent()
+        sino:
+            error
+
+    sino si lookahead == LET:
+        regla 5
+        consumir LET
+        si lookahead ∈ FIRST(TipoDecl) o FOLLOW(TipoDecl):
+            TipoDecl()
+        sino:
+            error
+        consumir ID
+        consumir ";"
+
+    sino si lookahead == DO:
+        regla 6
+        consumir DO
+        si lookahead ∈ FIRST(WhileBody):
+            WhileBody()
+        sino:
+            error
+
+    sino si lookahead ∈ FIRST(Sent):
+        regla 7
+        Sent()
+    sino:
+        error
+
+TipoDecl:
+    si lookahead ∈ FIRST(Tipo):
+        regla 8
+        Tipo()
+    sino si lookahead ∈ FOLLOW(TipoDecl):
+        regla 9 
+    sino:
+        error
+
+
+
+WhileBody:
+    regla 10
+    consumir "{"
+    si lookahead ∈ FIRST(FuncBody) o FOLLOW(FuncBody):
+        FuncBody()
+    sino:
+        error
+    consumir "}"
+    consumir WHILE
+    consumir "("
+    si lookahead ∈ FIRST(Expr):
+    Expr()
+    consumir ")"
+    consumir ";"
+
+
+Expr:
+    regla 11
+    si lookahead ∈ FIRST(ExpRel):
+        ExpRel()
+    sino:
+        error
+    si lookahead ∈ FIRST(Expr2) o FOLLOW(Expr2):
+        Expr2()
+    sino:
+        error
+
+Expr2:
+    si lookahead == LOG_AND:
+        regla 12
+        consumir LOG_AND
+    sino si lookahead ∈ FOLLOW(Expr2):
+        regla 13   
+    sino:
+        error
+
+
+ExpRel:
+    regla 14
+    si lookahead ∈ FIRST(AritExp)
+        AritExp()
+    sino:
+        error
+    si lookahead ∈ FIRST(ExpRel2) o FOLLOW(ExpRel2):
+        ExpRel2()
+    sino:
+        error
+
+
+ExpRel2:
+    si lookahead ∈ FIRST(operadores relacionales):
+        aplicar regla 15 o 16
+        consumir operador relacional
+    si lookahead ∈ FIRST(AritExp)
+        AritExp()
+    sino:
+        error
+    si lookahead ∈ FIRST(ExpRel2) o FOLLOW(ExpRel2):
+        ExpRel2()
+    sino:
+        error
+    sino si lookahead ∈ FOLLOW(ExpRel2):
+        regla 17  
+    sino:
+        error
+
+
+AritExp:
+    regla 18
+    si lookahead ∈ FIRST(Term):
+        Term()
+    sino:
+       error
+    si lookahead ∈ FIRST(AritExp2) o FOLLOW(AritExp2):
+        AritExp2()
+    sino:
+        error
+
+
+AritExp2:
+    si lookahead == '+':
+        regla 19
+        consumir '+'
+        si lookahead ∈ FIRST(Term):
+            Term()
+        sino:
+            error
+        si lookahead ∈ FIRST(AritExp2) o FOLLOW(AritExp2):
+            AritExp2()
+        sino:
+            error
+
+    si lookahead == '-':
+        regla 20
+        consumir '-'
+        si lookahead ∈ FIRST(Term):
+            Term()
+        sino:
+            error
+        si lookahead ∈ FIRST(AritExp2) o FOLLOW(AritExp2):
+            AritExp2()
+        sino:
+            error
+
+    sino si lookahead ∈ FOLLOW(AritExp2):
+        regla 21   
+    sino:
+        error
+
+
+Term:
+    si lookahead == '!':
+        regla 22
+        consumir "!"
+        si lookahead ∈ FIRST(Term3):
+            Term3()
+        sino:
+            error
+    si lookahead == '+':
+        regla 23
+        consumir "+"
+        Term2()
+    si lookahead == '-':
+        regla 24
+        consumir "-"
+        Term2()
+    si lookahead ∈ FIRST(Term2):
+        regla 25
+        Term2()
+    sino:
+        error
+
+
+Term3:
+    si lookahead == TRUE:
+        regla 26
+        consumir TRUE
+    sino si lookahead == FALSE:
+        regla 27
+        consumir FALSE
+    sino si lookahead ∈ FIRST(Term2):
+        regla 28
+        Term2()
+    sino:
+        error
+
+
+Term2:
+    si lookahead == INT_LITERAL:
+        regla 29
+        consumir INT_LITERAL
+
+    si lookahead == REAL_LITERAL:
+        regla 30
+        consumir REAL_LITERAL
+
+    si lookahead == ID:
+        regla 31
+        consumir ID
+        si lookahead ∈ FIRST(FactorId) o FOLLOW(FactorId):
+            FactorId()
+        sino:
+            error
+
+    si lookahead == STRING_LITERAL:
+        regla 32
+        consumir STRING_LITERAL
+
+    si lookahead == "(":
+        regla 33
+        consumir "("
+        si lookahead ∈ FIRST(Error):
+            Expr()
+        sino:
+            error
+        consumir ")"
+    sino:
+        error
+
+
+FactorId:
+    si lookahead == "(":
+        regla 34
+        consumir "("
+        si lookahead ∈ FIRST(ParamList) o FOLLOW(ParamList):
+            ParamList()
+        sino:
+            error
+        consumir ")"
+    sino si lookahead ∈ FOLLOW(FactorId):
+        regla 35 
+    sino:
+        error
+
+
+DecFunc:
+    consumir FUNCTION
+    regla 36
+    si lookahead ∈ FIRST(TipoFunc):
+        TipoFunc()
+    sino:
+        error
+    consumir ID
+    consumir "("
+    si lookahead ∈ FIRST(FuncParams):
+        FuncParams()
+    sino:
+        error
+    consumir ")"
+    consumir "{"
+    si lookahead ∈ FIRST(FuncBody):
+        FuncBody()
+    sino:
+        error
+    consumir "}"
+
+
+TipoFunc:
+    si lookahead == VOID:
+        regla 38
+        consumir VOID
+    si lookahead ∈ FIRST(Tipo):
+        regla 37
+        Tipo()
+    sino:
+        error
+
+
+FuncParams:
+    si lookahead ∈ FIRST(Tipo):
+        regla 39
+        Tipo()
+        consumir ID
+        si lookahead ∈ FIRST(FuncParams2):
+            FuncParams2()
+        sino:
+            error
+    sino si lookahead == VOID:
+        regla 40
+        consumir VOID
+    sino:
+        error
+
+FuncParams2:
+    si lookahead == ',':
+        regla 41
+        consumir ','
+        si lookahead ∈ FIRST(Tipo):
+            Tipo()
+        sino:
+            error
+        consumir ID
+        si lookahead ∈ FIRST(FuncParams2):
+            FuncParams2()
+        sino:
+            error
+    sino si lookahead  FOLLOW(FuncParams2):
+        regla 42
+        consumir VOID
+    sino:
+        error
+
+
+FuncBody:
+    si lookahead ∈ FIRST(Decl):
+        regla 47
+        Decl()
+        si lookahead ∈ FIRST(FuncBody):
+            FuncBody()
+        sino:
+            error
+    sino si lookahead ∈ FOLLOW(FuncBody):
+        regla 48 
+    sino:
+        error
+
+
+ParamList:
+    si lookahead ∈ FIRST(Expr):
+        regla 49
+        Expr()
+        si lookahead ∈ FIRST(ParamList):
+            ParamList2()
+        sino:
+            error
+    sino si lookahead ∈ FOLLOW(ParamList):
+        regla 50 
+    sino:
+        error
+
+ParamList2:
+    si lookahead == ',':
+        regla 51
+        consumir ','
+        si lookahead ∈ FIRST(Expr):
+            Expr()
+        sino:
+            error
+        si lookahead ∈ FIRST(ParamList2):
+            ParamList2()
+        sino:
+            error
+
+    sino si lookahead ∈ FOLLOW(ParamList2):
+        regla 52
+    sino:
+        error
+
+Sent:
+    si lookahead == ID:
+        regla 53
+        consumir ID
+        si lookahead ∈ FIRST(Sent2):
+            Sent2()
+        sino:
+            error
+
+    si lookahead == WRITE:
+        regla 54
+        consumir WRITE
+        si lookahead ∈ FIRST(Expr):
+            Expr()
+            consumir ";"
+        sino:
+            error
+
+    si lookahead == READ:
+        regla 55
+        consumir READ
+        consumir ID
+        consumir ";"
+
+    si lookahead == RETURN:
+        regla 56
+        consumir RETURN
+        si lookahead ∈ FIRST(ReturnExp):
+            ReturnExp()
+            consumir ";"
+        sino:
+            error
+    sino:
+        error
+
+
+Sent2:
+    si lookahead ∈ FIRST(asignación):
+        consumir operador de asignación
+        regla 57 o 58
+        Expr()
+        consumir ";"
+
+    si lookahead == "("  
+        regla 59
+        consumir "("
+        si lookahead ∈ FIRST(ParamList):
+            ParamList()
+            consumir ")"
+            consumir ";"
+        sino:
+            error
+    sino:
+        error
+
+
+ReturnExp:
+    si lookahead ∈ FIRST(Expr):
+        regla 60
+        Expr()
+    sino si lookahead ∈ FOLLOW(ReturnExp):
+        regla 61   
+    sino:
+        error
+

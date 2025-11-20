@@ -133,7 +133,7 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 					continue
 				}
 			}
-			errors.NewError(errors.K_LEXICAL, errors.C_INVALID_CHAR, s.currentChar)
+			errors.NewError(errors.LEXICAL, errors.C_INVALID_CHAR, s.currentChar)
 			s.reset()
 			s.nextChar()
 			return tk, false //TODO

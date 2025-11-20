@@ -5,9 +5,9 @@ import "fmt"
 type ErrorKind int
 
 const (
-	K_SINTACTICAL ErrorKind = iota
-	K_LEXICAL
-	K_SEMANTICAL
+	SINTACTICAL ErrorKind = iota
+	LEXICAL
+	SEMANTICAL
 )
 
 type ErrorCode int
@@ -15,13 +15,23 @@ type ErrorCode int
 const (
 	C_OK ErrorCode = iota
 	C_INVALID_CHAR
-	C_STRING_TOO_LONG 
+	C_STRING_TOO_LONG
 	C_INT_TOO_BIG
 	C_FLOAT_TOO_BIG
 	C_MALFORMED_NUMBER
 	C_MALFORMED_FLOAT
 	C_MALFORMED_STRING
 	C_MALFORMED_ID
+
+	S_INVALID_EXP
+	S_EXPECTED_EXP
+	S_EXPECTED_WHILE_CORCH
+	S_EXPECTED_SENT
+	S_EXPECTED_CERRAR_CORCH
+	S_MISSING_WHILE
+	S_EXPECTED_ABRIR_PAR
+	S_EXPECTED_CERRAR_PAR
+	S_EXPECTED_SEMICOLON
 )
 
 type Error struct {
@@ -43,11 +53,11 @@ func (e *Error) string() string {
 func (k ErrorKind) string() string {
 	var str string
 	switch k {
-	case K_LEXICAL:
+	case LEXICAL:
 		str = "LEXICO"
-	case K_SINTACTICAL:
+	case SINTACTICAL:
 		str = "SINTACTICO"
-	case K_SEMANTICAL:
+	case SEMANTICAL:
 		str = "SEMANTICO"
 	default:
 		str = "INTERNO"
@@ -67,15 +77,34 @@ func (c ErrorCode) string(val any) string {
 	case C_FLOAT_TOO_BIG:
 		str = fmt.Sprintf("Valor real '%f' supera el limite.", val)
 	case C_MALFORMED_NUMBER:
-		str= fmt.Sprintf("Literal numerico '%s' mal formado",val)
+		str = fmt.Sprintf("Literal numerico '%s' mal formado", val)
 	case C_MALFORMED_FLOAT:
-		str= fmt.Sprintf("Literal real '%s' mal formado",val)
+		str = fmt.Sprintf("Literal real '%s' mal formado", val)
 	case C_MALFORMED_ID:
-		str= fmt.Sprintf("El identificador '%s' no es valido",val)
+		str = fmt.Sprintf("El identificador '%s' no es valido", val)
 	case C_MALFORMED_STRING:
-		str= fmt.Sprintf("Cadena '%s' mal formada",val)
+		str = fmt.Sprintf("Cadena '%s' mal formada", val)
 	case C_OK:
 		str = "OK"
+		//SINTACTICAL
+	case S_INVALID_EXP:
+		str = "La expresion no es valida"
+	case S_EXPECTED_EXP:
+		str = "Se esperaba expresion"
+	case S_EXPECTED_WHILE_CORCH:
+		str = "Se espera { antes del cuerpo del while"
+	case S_EXPECTED_SENT:
+		str = "Se esperaba sentencia"
+	case S_EXPECTED_CERRAR_CORCH:
+		str = "Falta el cierre de bloque '}'"
+	case S_MISSING_WHILE:
+		str = "Se esperaba keyword 'while'"
+	case S_EXPECTED_CERRAR_PAR:
+		str = "Se esperaba cierre de parentesis ')'"
+	case S_EXPECTED_ABRIR_PAR:
+		str = "Se esperaba apertura de parentesis '('"
+	case S_EXPECTED_SEMICOLON:
+		str = "Falta ';' al final de la expresion"
 	default:
 		str = "interal error"
 	}

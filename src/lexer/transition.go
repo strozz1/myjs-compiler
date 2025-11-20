@@ -218,7 +218,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	t.addTransition(S5, F5, 0, matchNotDotOrDigit, func() (token.Token, bool) {
 		value, ok := safeInt16(sc.intVal)
 		if !ok {
-			errors.NewError(errors.K_LEXICAL, errors.C_INT_TOO_BIG, sc.intVal)
+			errors.NewError(errors.LEXICAL, errors.C_INT_TOO_BIG, sc.intVal)
 			sc.reset()
 			return token.Token{}, false
 		}
@@ -256,7 +256,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		var val float64 = float64(sc.intVal) * math.Pow(10.0, float64(-sc.decimalPos))
 		value, ok := safeFloat32(val)
 		if !ok {
-			errors.NewError(errors.K_LEXICAL, errors.C_FLOAT_TOO_BIG, val)
+			errors.NewError(errors.LEXICAL, errors.C_FLOAT_TOO_BIG, val)
 			sc.reset()
 			return token.Token{}, false
 		}
@@ -279,7 +279,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	//END STRING LITERAL
 	t.addTransition(S7, F7, '\'', nil, func() (token.Token, bool) {
 		if len(sc.lexeme) > MAX_STRING {
-			errors.NewError(errors.K_LEXICAL, errors.C_STRING_TOO_LONG, sc.lexeme)
+			errors.NewError(errors.LEXICAL, errors.C_STRING_TOO_LONG, sc.lexeme)
 			sc.reset()
 			return token.Token{}, false
 		}
@@ -408,7 +408,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		return token.Token{}, false
 	})
 	t.addTransition(E1, E2, 0, matchDelOrSemi, func() (token.Token, bool) {
-		errors.NewError(errors.K_LEXICAL, sc.tokenState.toError(), sc.lexeme)
+		errors.NewError(errors.LEXICAL, sc.tokenState.toError(), sc.lexeme)
 		return token.Token{}, false
 	})
 

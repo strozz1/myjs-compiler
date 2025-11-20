@@ -1,32 +1,14 @@
 Global Table #1:
-* LEXEMA: 'b'
+* LEXEMA: 'a'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'number'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'operacion'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'a'
+* LEXEMA: 'b'
   Atributos:
     + Tipo: '-'
 * LEXEMA: 'cc'
   Atributos:
     + Tipo: '-'
-* LEXEMA: 'real'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'num1'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'num1_'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'num2_'
-  Atributos:
-    + Tipo: '-'
-* LEXEMA: 'number_'
+* LEXEMA: 'number'
   Atributos:
     + Tipo: '-'
 ------------------------------------------
