@@ -1,0 +1,22 @@
+let    int a   ;
+let    int b       ;
+let    float cc ;
+let    int number  ;
+write  'Introduce el primer operando' ;
+read a;
+write 'Introduce el segundo operando';read  
+	b;
+😛
+function float real (float num1)
+{
+	return num1-num1;
+}
+
+function int operacion(int num2,int num1)
+{
+	let int  res;
+	res=num1+num2;
+	return ((res));
+}
+number = operacion (a, b);
+write number;

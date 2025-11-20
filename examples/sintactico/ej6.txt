@@ -1,0 +1,40 @@
+let string texto;
+function void pideTexto (void)
+{
+	write 'Introduce una palabra';
+	read texto;
+}
+function void output (string _msg)
+{
+	write _msg;
+}
+let int aa_aa ;
+let  int iiii;
+let string s64 ;
+let boolean bo;
+let float rr_rr;
+
+function int ffff  (void)
+{
+  aa_aa=11; 
+
+aa_aa= iiii  -  33;
+
+return aa_aa;
+}	
+
+write  ;
+
+
+
+	
+write s64;
+let float num_real;
+pideTexto();
+let  string  textoAux;textoAux = texto;
+output
+ (
+ textoAux                                                    
+ )
+ ;
+write num_real;

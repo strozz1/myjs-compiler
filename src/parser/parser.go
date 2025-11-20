@@ -360,11 +360,11 @@ func (p *ParserExec) AritExp2() {
 	case token.ARITM:
 		switch p.lookahead.Attr {
 		case token.ARIT_PLUS:
+			p.match(token.ARITM, token.ARIT_PLUS)
 			p.rule(19)
-			p.match(token.ARITM, token.ARIT_MINUS)
 		case token.ARIT_MINUS:
 			p.rule(20)
-			p.match(token.ARITM, token.ARIT_PLUS)
+			p.match(token.ARITM, token.ARIT_MINUS)
 		default:
 			fmt.Println("error 20")
 			return
