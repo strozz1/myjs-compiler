@@ -106,7 +106,7 @@ func (p *ParserExec) P() {
 	t := p.lookahead.Kind
 	if !(t == token.FUNCTION || t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
 		t == token.WRITE || t == token.READ || t == token.RETURN || p.lexer.EOF) {
-		fmt.Println("Error 1")
+		fmt.Printf("Error 1, %s\n", p.lookahead.Kind.String())
 		return
 	}
 	p.P()
@@ -273,6 +273,23 @@ func (p *ParserExec) Expr2() {
 	if t == token.LOGICO && p.lookahead.Attr == token.LOG_AND {
 		p.rule(12)
 		p.match(token.LOGICO, token.LOG_AND)
+
+		t = p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
+			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 11")
+			return
+		}
+		p.ExpRel()
+
+		t = p.lookahead.Kind
+		if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
+			t == token.PUNTOYCOMA || t == token.COMA) {
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 11b")
+			return
+		}
+		p.Expr2()
 	} else if t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
 		t == token.PUNTOYCOMA || t == token.COMA {
 		p.rule(13) //lambda
@@ -291,8 +308,8 @@ func (p *ParserExec) ExpRel() {
 		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 14")
 		return
 	}
-
 	p.AritExp()
+
 	t = p.lookahead.Kind
 	if !(t == token.RELAC || t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 		t == token.PUNTOYCOMA || t == token.CERRAR_PAR) {
@@ -323,6 +340,7 @@ func (p *ParserExec) ExpRel2() {
 			return
 		}
 		p.AritExp()
+
 		t = p.lookahead.Kind
 		if !(t == token.RELAC || t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 			t == token.PUNTOYCOMA || t == token.CERRAR_PAR) {
@@ -330,6 +348,7 @@ func (p *ParserExec) ExpRel2() {
 			return
 		}
 		p.ExpRel2()
+
 	case token.ARITM, token.COMA, token.PUNTOYCOMA, token.LOGICO, token.CERRAR_PAR:
 		p.rule(17)
 	default:
@@ -347,6 +366,7 @@ func (p *ParserExec) AritExp() {
 		return
 	}
 	p.Term()
+
 	t = p.lookahead.Kind
 	if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 		t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
@@ -378,6 +398,7 @@ func (p *ParserExec) AritExp2() {
 			return
 		}
 		p.Term()
+
 		t = p.lookahead.Kind
 		if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 			t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
@@ -401,6 +422,7 @@ func (p *ParserExec) Term() {
 		}
 		p.rule(22)
 		p.match(token.LOGICO, token.LOG_NEG)
+
 		t := p.lookahead.Kind
 		if !(t == token.TRUE || t == token.FALSE || t == token.INT_LITERAL ||
 			t == token.REAL_LITERAL || t == token.STRING_LITERAL ||
@@ -480,6 +502,7 @@ func (p *ParserExec) Term2() {
 	case token.ABRIR_PAR:
 		p.rule(33)
 		p.match(token.ABRIR_PAR, nil)
+
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
@@ -488,6 +511,7 @@ func (p *ParserExec) Term2() {
 			return
 		}
 		p.Expr()
+
 		if p.lookahead.Kind != token.CERRAR_PAR {
 			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 33")
 			return
