@@ -1,4 +1,5 @@
 let string texto;
+'
 function void pideTexto(void)
 {
 	write 'Escdfkjdfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffribe algo';

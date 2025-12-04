@@ -54,6 +54,9 @@ func main() {
 		return
 	}
 
+	//init Error
+	errors.NewErrorManager()
+
 	parse := parser.NewParser(lexer)
 	parse.Parse()
 	//for !lexer.EOF{
@@ -67,16 +70,7 @@ func main() {
 	lexer.WriteErrors(os.Stderr)
 }
 
-// PREDEFINED ATTRIBUTES
-const (
-	DESC_DESPL        = "Despl"       // relative offset
-	DESC_NUM_PARAM    = "numParam"    //num of params
-	DESC_TIPO_PARAM   = "TipoParam"   // type of params
-	DESC_MODO_PARAM   = "ModoParam"   // param mode
-	DESC_TIPO_RETORNO = "TipoRetorno" // return type
-	DESC_ETIQ_FUNCION = "EtiqFuncion" // function label
-	DESC_PARAM        = "Param"       // param
-)
+
 
 func initST(stManager *st.STManager) {
 	stManager.ReservedWords = []string{
@@ -84,15 +78,13 @@ func initST(stManager *st.STManager) {
 		"do", "while", "if", "function", "let", "return", "void",
 	}
 	stManager.CreateAttribute("despl", "despl", st.T_INTEGER)
-	stManager.CreateAttribute("numero de parametros", "numParam", st.T_INTEGER)
-	stManager.CreateAttribute("tipo de parametros", "tipoParam", st.T_ARRAY)
-	stManager.CreateAttribute("modo de parametros", "modoParam", st.T_ARRAY)
-	stManager.CreateAttribute("tipo de retorno", "tipoRetorno", st.T_STRING)
-	stManager.CreateAttribute("etiqueta", "etiqFuncion", st.T_STRING)
-	stManager.CreateAttribute("parametro", "param", st.T_INTEGER)
+	stManager.CreateAttribute("numParam", "numParam", st.T_INTEGER)
+	stManager.CreateAttribute("tipoParam", "tipoParam", st.T_ARRAY)
+	stManager.CreateAttribute("modoParam", "modoParam", st.T_ARRAY)
+	stManager.CreateAttribute("tipoRetorno", "tipoRetorno", st.T_STRING)
+	stManager.CreateAttribute("etiqFuncion", "etiqFuncion", st.T_STRING)
+	stManager.CreateAttribute("param", "param", st.T_INTEGER)
 	stManager.CreateAttribute("dimension", "dimension", st.T_INTEGER)
-	stManager.CreateAttribute("elem", "elem", st.T_STRING)
-
 }
 
 func debug() {

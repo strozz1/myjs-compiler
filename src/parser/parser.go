@@ -33,14 +33,78 @@ func NewParser(lexer *lexer.Lexer) Parser {
 		parserExec,
 	}
 }
-func (p *Parser) Parse() {
-	p.parserExec.P()
+func (p *Parser) Parse() bool {
+	return (p.parserExec.P(Attr{}).tipo == OK)
 }
 
 type ParserExec struct {
 	lexer     *lexer.Lexer
 	lookahead token.Token
 	list      []int
+}
+
+type Attr struct {
+	tipo       TypeExp
+	idPos      int
+	posActual  int // para params
+	numParam   int
+	tipoParam  []string
+	funcBody   bool
+	returnType TypeExp
+}
+
+func error() Attr {
+	return Attr{tipo: ERROR}
+}
+
+type TypeExp int
+
+const (
+	VOID TypeExp = iota
+	INT
+	FLOAT
+	STRING
+	FUNCTION
+	BOOLEAN
+	OK
+	ERROR
+)
+
+func (t TypeExp) String() string {
+	var a string
+	switch t {
+	case VOID:
+		a = "void"
+	case INT:
+		a = "int"
+	case FLOAT:
+		a = "float"
+	case STRING:
+		a = "string"
+	case FUNCTION:
+		a = "function"
+	case BOOLEAN:
+		a = "boolean"
+	}
+	return a
+}
+func from(s string) TypeExp {
+	var t TypeExp
+	switch s {
+	case "void":
+		t = VOID
+	case "int":
+		t = INT
+	case "float":
+		t = FLOAT
+	case "string":
+		t = STRING
+	case "function":
+		t = FUNCTION
+	case "boolean":
+		t = BOOLEAN
+	}
+	return t
 }
 
 // Function that saves wich rule has been applied
@@ -88,187 +152,226 @@ func (p *ParserExec) match(tk token.TokenKind, attr any) bool {
 }
 
 // Axiom
-func (p *ParserExec) P() {
+func (p *ParserExec) P(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.LET, token.ID, token.IF, token.DO, token.READ, token.WRITE, token.RETURN:
 		p.rule(1)
-		p.Decl()
+
+		p.Decl(attr)
 	case token.FUNCTION:
 		p.rule(2)
-		p.DecFunc()
+		p.DecFunc(attr)
+
 	case token.EOF:
 		p.rule(3)
-		return
+		return Attr{tipo: OK}
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 3")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 3")
+		return error()
 	}
 	t := p.lookahead.Kind
 	if !(t == token.FUNCTION || t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
 		t == token.WRITE || t == token.READ || t == token.RETURN || p.lexer.EOF) {
-		fmt.Printf("Error 1, %s\n", p.lookahead.Kind.String())
-		return
+		errors.SintacticalError(errors.S_EXPECTED_SENT, nil)
+		//os.Exit(1);
+		return error()
 	}
-	p.P()
+	p.P(attr)
+	return Attr{tipo: OK} //todo
 }
 
-func (p *ParserExec) Decl() {
+func (p *ParserExec) Decl(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.IF:
 		p.rule(4)
 		p.match(token.IF, nil)
 		if p.lookahead.Kind != token.ABRIR_PAR {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 4")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 4")
+			return error()
 		}
 		p.match(token.ABRIR_PAR, nil)
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 4")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 4")
+			return error()
 		}
-		p.Expr()
+		exp := p.Expr(attr)
+		if exp.tipo == ERROR {
+			return error()
+		}
+		if exp.tipo != BOOLEAN {
+			errors.SemanticalError(errors.SS_IF_COND, exp.tipo.String())
+			return error()
+		}
 		if p.lookahead.Kind != token.CERRAR_PAR {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 4")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 4")
+			return error()
 		}
 		p.match(token.CERRAR_PAR, nil)
 		t = p.lookahead.Kind
 		if !(t == token.ID || t == token.WRITE || t == token.READ || t == token.RETURN) {
-			fmt.Println("Error 4")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_CERRAR_PAR, nil)
+			return error()
 		}
-		p.Sent()
-
+		return p.Sent(attr)
 	case token.LET:
+		p.lexer.DeclarationZone(true)
 		p.rule(5)
 		p.match(token.LET, nil)
 		t := p.lookahead.Kind
 		if !(t == token.ID || t == token.INT || t == token.FLOAT || t == token.BOOLEAN ||
 			t == token.STRING) {
-			fmt.Println("Error 5")
-			return
+			errors.SintacticalError(errors.S_TYPE, nil) // 5")
+			return error()
 		}
-		p.TipoDecl()
+		tipoDecl := p.TipoDecl().tipo
 		if p.lookahead.Kind != token.ID {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 5")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 5")
+			return error()
 		}
+		pos := p.lookahead.Attr.(int)
+		entry, ok := p.lexer.STManager.GetEntry(pos)
+		if !ok {
+			//todo
+			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		p.lexer.STManager.SetEntryType(entry, tipoDecl.String())
 		p.match(token.ID, nil)
+		p.lexer.DeclarationZone(false)
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 5")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil) // 5")
+			return error()
 		}
 		p.match(token.PUNTOYCOMA, nil)
-
 	case token.DO:
 		p.rule(6)
 		p.match(token.DO, nil)
 		if p.lookahead.Kind != token.ABRIR_CORCH {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 6")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 6")
+			return error()
 		}
-		p.WhileBody()
+		res := p.WhileBody(attr)
+		res.funcBody = false
+		return res
 	default:
 		t := p.lookahead.Kind
 		if t == token.ID || t == token.WRITE || t == token.READ || t == token.RETURN {
 			p.rule(7)
-			p.Sent()
+			return p.Sent(attr)
 		} else {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 7")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 7")
+			return error()
 		}
 	}
-
+	return Attr{tipo: OK}
 }
 
-func (p *ParserExec) TipoDecl() {
+func (p *ParserExec) TipoDecl() Attr {
 	t := p.lookahead.Kind
 	if t == token.INT || t == token.FLOAT || t == token.BOOLEAN || t == token.STRING {
 		//if FIRST(Tipo)
 		p.rule(8)
-		p.Tipo()
+		return p.Tipo()
 	} else if t != token.ID {
 		p.rule(9)
+		return Attr{tipo: INT}
 	} else {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 9")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 9")
+		return error()
 	}
 }
 
-func (p *ParserExec) WhileBody() {
+func (p *ParserExec) WhileBody(attr Attr) Attr {
 	p.rule(10)
 	if p.lookahead.Kind != token.ABRIR_CORCH {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_WHILE_CORCH, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_WHILE_CORCH, nil) // 10")
+		return error()
 	}
 	p.match(token.ABRIR_CORCH, nil)
 	t := p.lookahead.Kind
 	if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
 		t == token.WRITE || t == token.READ || t == token.RETURN ||
 		t == token.CERRAR_CORCH) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SENT, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_SENT, nil) // 10")
+		return error()
 	}
-	p.FuncBody()
+	bodyAttr := p.FuncBody(attr)
 	if p.lookahead.Kind != token.CERRAR_CORCH {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_CERRAR_CORCH, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_CERRAR_CORCH, nil) // 10")
+		return error()
 	}
 	p.match(token.CERRAR_CORCH, nil)
 	if p.lookahead.Kind != token.WHILE {
-		errors.NewError(errors.SINTACTICAL, errors.S_MISSING_WHILE, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_MISSING_WHILE, nil) // 10")
+		return error()
 	}
 	p.match(token.WHILE, nil)
 	if p.lookahead.Kind != token.ABRIR_PAR {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_ABRIR_PAR, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_ABRIR_PAR, nil) // 10")
+		return error()
 	}
 	p.match(token.ABRIR_PAR, nil)
 	t = p.lookahead.Kind
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 10")
+		return error()
 	}
-	p.Expr()
+	condAttr := p.Expr(attr)
 	if p.lookahead.Kind != token.CERRAR_PAR {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 10")
+		return error()
 	}
 	p.match(token.CERRAR_PAR, nil)
 	if p.lookahead.Kind != token.PUNTOYCOMA {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 10")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil) // 10")
+		return error()
 	}
 	p.match(token.PUNTOYCOMA, nil)
+	if bodyAttr.tipo == ERROR {
+		return error()
+	}
+	if condAttr.tipo == ERROR {
+		return error()
+	}
+	if condAttr.tipo != BOOLEAN {
+		errors.SemanticalError(errors.SS_EXPECTED_WHILE_COND, condAttr.tipo.String())
+		return error()
+	}
+	return Attr{tipo: OK}
 }
 
-func (p *ParserExec) Expr() {
+// Expr -> ExpRel {if(ExpRel!=error)Expr2.tipo:=ExpRel.tipo else Expr.error} Expr2 {Expr.tipo=Expr2.tipo}
+func (p *ParserExec) Expr(attr Attr) Attr {
 	p.rule(11)
 	t := p.lookahead.Kind
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 11")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 11")
+		return error()
+	}
+	relRes := p.ExpRel(attr)
+	if relRes.tipo == ERROR {
+		return relRes
 	}
 
-	p.ExpRel()
 	t = p.lookahead.Kind
 	if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
 		t == token.PUNTOYCOMA || t == token.COMA) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 11b")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 11b")
+		return error()
 	}
-	p.Expr2()
+
+	a := p.Expr2(relRes)
+	return a
 }
 
-func (p *ParserExec) Expr2() {
+func (p *ParserExec) Expr2(attr Attr) Attr {
 	t := p.lookahead.Kind
 	if t == token.LOGICO && p.lookahead.Attr == token.LOG_AND {
 		p.rule(12)
@@ -278,47 +381,60 @@ func (p *ParserExec) Expr2() {
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP_LOG, nil) // 11")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP_LOG, nil) // 11")
+			return error()
 		}
-		p.ExpRel()
+
+		resRel := p.ExpRel(attr)
+		if resRel.tipo == ERROR {
+			return resRel
+		} else if !(resRel.tipo == BOOLEAN && attr.tipo == BOOLEAN) {
+			errors.SemanticalError(errors.SS_EXPECTED_BOOLEANS, fmt.Sprintf("%s && %s", resRel.tipo.String(), attr.tipo.String()))
+			return error()
+		}
 
 		t = p.lookahead.Kind
 		if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
 			t == token.PUNTOYCOMA || t == token.COMA) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP_LOG, nil) // 11b")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP_LOG, nil) // 11b")
+			return error()
 		}
-		p.Expr2()
+		return p.Expr2(resRel)
 	} else if t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
 		t == token.PUNTOYCOMA || t == token.COMA {
 		p.rule(13) //lambda
+		return attr
 	} else {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 12/13")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 12/13")
+		return error()
 	}
 }
 
-func (p *ParserExec) ExpRel() {
+func (p *ParserExec) ExpRel(attr Attr) Attr {
 	p.rule(14)
 	t := p.lookahead.Kind
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 14")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 14")
+		return error()
 	}
-	p.AritExp()
+
+	resArit := p.AritExp(attr)
+	if resArit.tipo == ERROR {
+		return resArit
+	}
 
 	t = p.lookahead.Kind
 	if !(t == token.RELAC || t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 		t == token.PUNTOYCOMA || t == token.CERRAR_PAR) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 14")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 14")
+		return error()
 	}
-	p.ExpRel2()
+	return p.ExpRel2(resArit)
 }
-func (p *ParserExec) ExpRel2() {
+func (p *ParserExec) ExpRel2(attr Attr) Attr {
+
 	switch p.lookahead.Kind {
 	case token.RELAC:
 		switch p.lookahead.Attr {
@@ -329,54 +445,68 @@ func (p *ParserExec) ExpRel2() {
 			p.rule(16)
 			p.match(token.RELAC, token.REL_NOTEQ)
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 15/16")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 15/16")
+			return error()
 		}
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 15/16")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 15/16")
+			return error()
 		}
-		p.AritExp()
+
+		arit := p.AritExp(attr)
+		if arit.tipo == ERROR {
+			return error()
+		}
+		if !(arit.tipo.String() == attr.tipo.String()) {
+			errors.SemanticalError(errors.SS_RELATIONAL_TYPES, fmt.Sprintf("'%s' y '%s'", attr.tipo.String(), arit.tipo.String()))
+			return error()
+		}
 
 		t = p.lookahead.Kind
 		if !(t == token.RELAC || t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 			t == token.PUNTOYCOMA || t == token.CERRAR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 15/16b")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 15/16b")
+			return error()
 		}
-		p.ExpRel2()
+		arit.tipo = BOOLEAN
+		return p.ExpRel2(arit)
 
 	case token.ARITM, token.COMA, token.PUNTOYCOMA, token.LOGICO, token.CERRAR_PAR:
 		p.rule(17)
+		return attr
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 17")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 17")
+		return error()
 	}
 }
 
-func (p *ParserExec) AritExp() {
+func (p *ParserExec) AritExp(attr Attr) Attr {
 	p.rule(18)
 	t := p.lookahead.Kind
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 18/a")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 18/a")
+		return error()
 	}
-	p.Term()
+	termAttr := p.Term(attr)
+	if termAttr.tipo == ERROR {
+		return termAttr
+	}
 
 	t = p.lookahead.Kind
 	if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 		t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 18b")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 18b")
+		return error()
 	}
-	p.AritExp2()
+	return p.AritExp2(termAttr)
 }
 
-func (p *ParserExec) AritExp2() {
+func (p *ParserExec) AritExp2(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.ARITM:
 		switch p.lookahead.Attr {
@@ -387,38 +517,46 @@ func (p *ParserExec) AritExp2() {
 			p.rule(20)
 			p.match(token.ARITM, token.ARIT_MINUS)
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 20")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 20")
+			return error()
 		}
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 19")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 19")
+			return error()
 		}
-		p.Term()
+		termRes := p.Term(attr)
+		if !((attr.tipo == FLOAT && termRes.tipo == FLOAT) || (attr.tipo == INT && termRes.tipo == INT)) {
+			if termRes.tipo != ERROR {
+				errors.SemanticalError(errors.SS_INVALID_ARIT_TYPES, fmt.Sprintf("'%s' y '%s'", attr.tipo.String(), termRes.tipo.String()))
+			}
+			return error()
+		}
 
 		t = p.lookahead.Kind
 		if !(t == token.LOGICO || t == token.ARITM || t == token.COMA ||
 			t == token.PUNTOYCOMA || t == token.CERRAR_PAR || t == token.RELAC) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 19/20")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 19/20")
+			return error()
 		}
-		p.AritExp2()
+		return p.AritExp2(termRes)
 	case token.RELAC, token.LOGICO, token.CERRAR_PAR, token.PUNTOYCOMA, token.COMA:
 		p.rule(21) //lambda
+		return attr
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil)
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil)
+		return error()
 	}
 }
 
-func (p *ParserExec) Term() {
+func (p *ParserExec) Term(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.LOGICO:
 		if p.lookahead.Attr != token.LOG_NEG {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 22")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 22")
+			return error()
 		}
 		p.rule(22)
 		p.match(token.LOGICO, token.LOG_NEG)
@@ -427,10 +565,18 @@ func (p *ParserExec) Term() {
 		if !(t == token.TRUE || t == token.FALSE || t == token.INT_LITERAL ||
 			t == token.REAL_LITERAL || t == token.STRING_LITERAL ||
 			t == token.ABRIR_PAR || t == token.ID) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 22")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 22")
+			return error()
 		}
-		p.Term3()
+		res := p.Term3(attr)
+		if res.tipo == ERROR {
+			return error()
+		}
+		if res.tipo != BOOLEAN {
+			errors.SemanticalError(errors.SS_NEGATION_EXPECTED_BOOL, res.tipo.String())
+			return error()
+		}
+		return res
 	case token.ARITM:
 		switch p.lookahead.Attr {
 		case token.ARIT_PLUS:
@@ -440,65 +586,86 @@ func (p *ParserExec) Term() {
 			p.rule(24)
 			p.match(token.ARITM, token.ARIT_MINUS)
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 23/24")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 23/24")
+			return error()
 		}
+
 		switch p.lookahead.Kind {
 		case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
 			token.ABRIR_PAR:
-			p.Term2()
+			term2 := p.Term2(attr)
+			if !(term2.tipo == INT || term2.tipo == FLOAT) {
+				errors.SemanticalError(errors.SS_INVALID_SIGN_TYPE, term2.tipo.String())
+				return error()
+			}
+			return term2
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 23/24")
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 23/24")
+			return error()
 		}
 	case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
 		token.ABRIR_PAR:
 		p.rule(25)
-		p.Term2()
+		return p.Term2(attr)
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 23/24")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 23/24")
+		return error()
 	}
 }
 
-func (p *ParserExec) Term3() {
+func (p *ParserExec) Term3(attr Attr) Attr {
+	var t TypeExp
 	switch p.lookahead.Kind {
 	case token.TRUE:
 		p.rule(26)
 		p.match(token.TRUE, nil)
+		t = BOOLEAN
 	case token.FALSE:
 		p.rule(27)
 		p.match(token.FALSE, nil)
+		t = BOOLEAN
 	case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
 		token.ABRIR_PAR:
 		p.rule(28)
-		p.Term2()
+		return p.Term2(attr)
+
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 28")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 28")
+		t = ERROR
 	}
+	return Attr{tipo: t}
 }
 
-func (p *ParserExec) Term2() {
+func (p *ParserExec) Term2(attr Attr) Attr {
+	var tt TypeExp
 	switch p.lookahead.Kind {
 	case token.INT_LITERAL:
 		p.rule(29)
 		p.match(token.INT_LITERAL, nil)
+		tt = INT
 	case token.REAL_LITERAL:
 		p.rule(30)
 		p.match(token.REAL_LITERAL, nil)
+		tt = FLOAT
 	case token.ID:
 		p.rule(31)
+		pos := p.lookahead.Attr.(int)
+		attr := Attr{idPos: pos}
 		p.match(token.ID, nil)
 		t := p.lookahead.Kind
 		if !(t == token.ABRIR_PAR || t == token.CERRAR_PAR || t == token.ARITM ||
 			t == token.RELAC || t == token.LOGICO || t == token.COMA ||
 			t == token.PUNTOYCOMA) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 31")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 31")
+			return error()
 		}
-		p.FactorId()
+		res := p.FactorId(attr)
+
+		tt = res.tipo
 	case token.STRING_LITERAL:
 		p.rule(32)
 		p.match(token.STRING_LITERAL, nil)
+		tt = STRING
 	case token.ABRIR_PAR:
 		p.rule(33)
 		p.match(token.ABRIR_PAR, nil)
@@ -507,281 +674,427 @@ func (p *ParserExec) Term2() {
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 33")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 33")
+			return error()
 		}
-		p.Expr()
+		res := p.Expr(attr)
+		tt = res.tipo
 
 		if p.lookahead.Kind != token.CERRAR_PAR {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 33")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 33")
+			return error()
 		}
 		p.match(token.CERRAR_PAR, nil)
 	}
+	return Attr{tipo: tt}
 }
 
-func (p *ParserExec) FactorId() {
+func (p *ParserExec) FactorId(attr Attr) Attr {
+	entry, ok := p.lexer.STManager.GetEntry(attr.idPos)
+	if !ok {
+		errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+		return error()
+	}
 	switch p.lookahead.Kind {
 	case token.ABRIR_PAR:
 		p.rule(34)
+		//TODO param list
 		p.match(token.ABRIR_PAR, nil)
 		switch p.lookahead.Kind {
 		case token.ARITM, token.LOGICO, token.CERRAR_PAR, token.ID, token.INT_LITERAL,
 			token.REAL_LITERAL, token.STRING_LITERAL:
 			if p.lookahead.Kind == token.LOGICO {
 				if p.lookahead.Attr != token.LOG_NEG {
-					errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 34a")
-					return
+					errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 34a")
+					return error()
 				}
 			}
-			p.ParamList()
+			attr := Attr{posActual: 0}
+			res := p.ParamList(attr)
+			if p.lookahead.Kind != token.CERRAR_PAR {
+				errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 34c")
+				return error()
+			}
+			p.match(token.CERRAR_PAR, nil)
+			if res.tipo == OK {
+				ret := entry.GetAttribute("tipoRetorno").Value().(string)
+				return Attr{tipo: from(ret)}
+			} else {
+				return Attr{tipo: ERROR}
+			}
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 34b")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 34b")
+			return error()
 		}
-		if p.lookahead.Kind != token.CERRAR_PAR {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 34c")
-			return
-		}
-		p.match(token.CERRAR_PAR, nil)
-
 	case token.LOGICO, token.ARITM, token.RELAC, token.COMA, token.PUNTOYCOMA,
 		token.CERRAR_PAR:
 		p.rule(35)
+		t := from(entry.GetType().String())
+		return Attr{tipo: t}
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 35")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 35")
+		return error()
 	}
 }
 
-func (p *ParserExec) DecFunc() {
+func (p *ParserExec) DecFunc(attr Attr) Attr {
 	p.rule(36)
 	if p.lookahead.Kind != token.FUNCTION {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
 	}
 	p.match(token.FUNCTION, nil)
 	t := p.lookahead.Kind
 	if !(t == token.STRING || t == token.VOID || t == token.INT ||
 		t == token.FLOAT || t == token.BOOLEAN) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_FUNCTYPE, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_FUNCTYPE, nil) // 36")
+		return error()
 	}
-	p.TipoFunc()
+	tipo := p.TipoFunc()
+	if tipo.tipo == ERROR {
+		return error()
+	}
+	p.lexer.DeclarationZone(true)
 	if p.lookahead.Kind != token.ID {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
 	}
+	i, _ := p.lookahead.Attr.(int)
+	e, ok := p.lexer.STManager.GetEntry(i)
+	if !ok {
+		errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+		return error()
+	}
+	p.lexer.STManager.SetEntryType(e, "function")
+	e.SetAttributeValue("valorRetorno", tipo.tipo.String())
+	attr.idPos = i
+	attr.returnType = tipo.tipo
+	etiq := fmt.Sprintf("etiq_%s", p.lookahead.Lexeme)
+	p.lexer.STManager.NewScope(etiq)
 	p.match(token.ID, nil)
 	if p.lookahead.Kind != token.ABRIR_PAR {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
 	}
+	p.lexer.DeclarationZone(false)
 	p.match(token.ABRIR_PAR, nil)
 	t = p.lookahead.Kind
 	if !(t == token.STRING || t == token.VOID || t == token.INT ||
 		t == token.FLOAT || t == token.BOOLEAN) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
 	}
-	p.FuncParams()
+	attr.numParam = 0
+	attr.tipoParam = []string{}
+	params := p.FuncParams(attr)
 	if p.lookahead.Kind != token.CERRAR_PAR {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
+	}
+	if params.tipo == ERROR {
+		return error()
 	}
 	p.match(token.CERRAR_PAR, nil)
 	if p.lookahead.Kind != token.ABRIR_CORCH {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
 	}
 	p.match(token.ABRIR_CORCH, nil)
 	t = p.lookahead.Kind
 	if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
 		t == token.WRITE || t == token.READ || t == token.RETURN ||
 		t == token.CERRAR_CORCH) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
 	}
-	p.FuncBody()
+	bodyRes := p.FuncBody(attr)
 	if p.lookahead.Kind != token.CERRAR_CORCH {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
+		return error()
 	}
 	p.match(token.CERRAR_CORCH, nil)
+	return bodyRes
 }
 
-func (p *ParserExec) TipoFunc() {
+func (p *ParserExec) TipoFunc() Attr {
 	switch p.lookahead.Kind {
 	case token.VOID:
 		p.rule(38)
 		p.match(token.VOID, nil)
+		return Attr{tipo: VOID}
 	case token.STRING, token.INT, token.FLOAT, token.BOOLEAN:
 		p.rule(37)
-		p.Tipo()
+		return p.Tipo()
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 37/38")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 37/38")
+		return error()
 	}
 }
 
-func (p *ParserExec) FuncParams() {
+func (p *ParserExec) FuncParams(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.INT, token.FLOAT, token.BOOLEAN, token.STRING: //FIRST(Tipo)
 		p.rule(39)
-		p.Tipo()
-		if p.lookahead.Kind != token.ID {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 39")
-			return
+		tipo := p.Tipo()
+		if tipo.tipo == ERROR {
+			return error()
 		}
+		attr.tipoParam = append(attr.tipoParam, tipo.tipo.String())
+		attr.numParam++
+		if p.lookahead.Kind != token.ID {
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 39")
+			return error()
+		}
+		i, _ := p.lookahead.Attr.(int)
+		e, ok := p.lexer.STManager.GetEntry(i)
+		if !ok {
+			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		p.lexer.STManager.SetEntryType(e, tipo.tipo.String())
 		p.match(token.ID, nil)
 		if p.lookahead.Kind == token.COMA || p.lookahead.Kind == token.CERRAR_PAR {
 			//first FuncParams2
-			p.FuncParams2()
+			return p.FuncParams2(attr)
 		} else {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 39")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 39")
+			return error()
 		}
 	case token.VOID:
 		p.match(token.VOID, nil)
 		p.rule(40)
+		e, ok := p.lexer.STManager.GetEntry(attr.idPos)
+		if !ok {
+			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		e.SetAttributeValue("numParam", attr.numParam) //0
+		e.SetAttributeValue("tipoParam", attr.tipoParam)
+		attr.tipo = OK
+		return attr
+
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 40")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 40")
+		return error()
 	}
 }
 
-func (p *ParserExec) FuncParams2() {
+func (p *ParserExec) FuncParams2(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.COMA:
 		p.match(token.COMA, nil)
 		p.rule(41)
 		switch p.lookahead.Kind {
 		case token.INT, token.FLOAT, token.BOOLEAN, token.STRING, token.ID: //FIRST(Tipo)&id
-			p.Tipo()
-			if p.lookahead.Kind != token.ID {
-				errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 41a")
-				return
+			tipo := p.Tipo()
+			if tipo.tipo == ERROR {
+				return error()
 			}
+			attr.tipoParam = append(attr.tipoParam, tipo.tipo.String())
+			attr.numParam++
+			if p.lookahead.Kind != token.ID {
+				errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 41a")
+				return error()
+			}
+			i, _ := p.lookahead.Attr.(int)
+			e, ok := p.lexer.STManager.GetEntry(i)
+			if !ok {
+				errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+				return error()
+			}
+			p.lexer.STManager.SetEntryType(e, tipo.tipo.String())
 			p.match(token.ID, nil)
 			if !(p.lookahead.Kind == token.COMA || p.lookahead.Kind == token.CERRAR_PAR) {
-				errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 41b")
-				return
+				errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 41b")
+				return error()
 			}
-			p.FuncParams2()
+			return p.FuncParams2(attr)
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 41")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 41")
+			return error()
 		}
 	case token.CERRAR_PAR:
 		p.rule(42)
+		e, ok := p.lexer.STManager.GetEntry(attr.idPos)
+		if !ok {
+			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		e.SetAttributeValue("numParam", attr.numParam)
+		e.SetAttributeValue("tipoParam", attr.tipoParam)
+		attr.tipo = OK
+		return attr
+
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 42")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 42")
+		return error()
 	}
 }
 
-func (p *ParserExec) Tipo() {
+func (p *ParserExec) Tipo() Attr {
+	var t TypeExp
 	switch p.lookahead.Kind {
 	case token.INT:
 		p.match(token.INT, nil)
 		p.rule(43)
+		t = INT
 	case token.FLOAT:
 		p.match(token.FLOAT, nil)
 		p.rule(44)
+		t = FLOAT
 	case token.BOOLEAN:
 		p.match(token.BOOLEAN, nil)
 		p.rule(45)
+		t = BOOLEAN
 	case token.STRING:
 		p.match(token.STRING, nil)
 		p.rule(46)
+		t = STRING
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 43-46")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil)
+		t = ERROR
 	}
+	return Attr{tipo: t}
 }
 
-func (p *ParserExec) FuncBody() {
+func (p *ParserExec) FuncBody(attr Attr) Attr {
+	attr.returnType = VOID //TODO: revisar esto
 	switch p.lookahead.Kind {
 	case token.IF, token.LET, token.DO, token.ID, token.READ, token.WRITE,
 		token.RETURN: //first Decl
 		p.rule(47)
-		p.Decl()
+		res := p.Decl(attr)
+		if res.tipo == ERROR {
+			return error()
+		}
 		t := p.lookahead.Kind
 		if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
 			t == token.WRITE || t == token.READ || t == token.RETURN ||
 			t == token.CERRAR_CORCH) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 47")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil)
+			return error()
 		}
-		p.FuncBody()
-
+		return p.FuncBody(attr)
 	case token.CERRAR_CORCH:
 		p.rule(48)
-
+		return Attr{tipo: OK}
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 48")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil)
+		return error()
 	}
 }
 
-func (p *ParserExec) ParamList() {
+func (p *ParserExec) ParamList(attr Attr) Attr {
 	t := p.lookahead.Kind
 	if t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR {
 		p.rule(49)
-		p.Expr()
+		if attr.posActual >= attr.numParam {
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
+			return error()
+		}
+
+		res := p.Expr(attr)
+
+		expected := attr.tipoParam[attr.posActual]
+		if res.tipo == ERROR {
+			return error()
+		} else if expected != res.tipo.String() {
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, expected)
+			return error()
+		}
+		attr.posActual++
+
 		t = p.lookahead.Kind
 		if !(t == token.COMA || t == token.CERRAR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 49")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 49")
+			return error()
 		}
-		p.ParamList2()
+		return p.ParamList2(attr)
 
 	} else if p.lookahead.Kind == token.CERRAR_PAR {
 		p.rule(50)
+		if attr.posActual < attr.numParam {
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
+			return error()
+		}
 	} else {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 50")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 50")
+		return error()
 	}
+	return Attr{tipo: OK}
 }
 
-func (p *ParserExec) ParamList2() {
+func (p *ParserExec) ParamList2(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.COMA:
 		p.match(token.COMA, nil)
 		p.rule(51)
+		if attr.posActual >= attr.numParam {
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
+			return error()
+		}
+
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 51")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 51")
+			return error()
 		}
-		p.Expr()
+		res := p.Expr(attr)
+
+		expected := attr.tipoParam[attr.posActual]
+		if res.tipo == ERROR {
+			return error()
+		} else if expected != res.tipo.String() {
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, expected)
+			return error()
+		}
+		attr.posActual++
+
 		t = p.lookahead.Kind
 		if !(t == token.COMA || t == token.CERRAR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 51")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 51")
+			return error()
 		}
-		p.ParamList2()
-	case token.CERRAR_PAR: //FOLLOW={)
+		p.ParamList2(attr)
+	case token.CERRAR_PAR:
 		p.rule(52)
+
+		if attr.posActual < attr.numParam {
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
+			return error()
+		}
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 52")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 52")
+		return error()
 	}
+	return Attr{tipo: OK}
 }
 
-func (p *ParserExec) Sent() {
+func (p *ParserExec) Sent(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.ID:
+		i, _ := p.lookahead.Attr.(int)
+		a, ok := p.lexer.STManager.GetEntry(i)
+		if !ok {
+			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		attr.idPos = i
+		attr.tipo = from(a.GetType().String())
 		p.match(token.ID, nil)
 		p.rule(53)
 		switch p.lookahead.Kind {
 		case token.ASIG, token.ABRIR_PAR:
 			break
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 53")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 53")
+			return error()
 		}
-		p.Sent2()
+		return p.Sent2(attr)
 
 	case token.WRITE:
 		p.match(token.WRITE, nil)
@@ -790,53 +1103,77 @@ func (p *ParserExec) Sent() {
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 54")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 54")
+			return error()
 		}
-		p.Expr()
+		exp := p.Expr(attr)
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil)
-			return
+			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil)
+			return error()
 		}
 		p.match(token.PUNTOYCOMA, nil)
+		if exp.tipo == ERROR {
+			return error()
+		}
+		return Attr{tipo: OK}
 
 	case token.READ:
 		p.rule(55)
 		if !p.match(token.READ, nil) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 55")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 55")
+			return error()
 		}
-		if !p.match(token.ID, nil) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 55")
-			return
+		if p.lookahead.Kind != token.ID {
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 55")
+			return error()
 		}
+		i, _ := p.lookahead.Attr.(int)
+		if !p.lexer.STManager.EntryExists(i) {
+			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		//TODO: tipo de lectura?
+		p.match(token.ID, nil)
 		if !p.match(token.PUNTOYCOMA, nil) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 55")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 55")
+			return error()
 		}
+		attr.tipo = OK
+		return attr
 
 	case token.RETURN:
 		p.rule(56)
 		p.match(token.RETURN, nil)
+		if !(attr.funcBody) {
+			errors.SemanticalError(errors.SS_RETURN_OUTSIDE, nil)
+			return error()
+		}
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.STRING_LITERAL || t == token.REAL_LITERAL ||
 			t == token.ID || t == token.CERRAR_PAR || t == token.PUNTOYCOMA) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_RET_EXP, nil) // 55")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_RET_EXP, nil) // 55")
+			return error()
 		}
-		p.ReturnExp()
+		res := p.ReturnExp()
 		if !p.match(token.PUNTOYCOMA, nil) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 55")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil) // 55")
+			return error()
 		}
+		if res.tipo != attr.returnType {
+			errors.SemanticalError(errors.SS_INVALID_RETURN, fmt.Sprintf("se esperaba %s, se obtuvo %s", attr.returnType.String(), res.tipo.String()))
+			return error()
+		}
+		return res
 
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 53-56")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 53-56")
+		return error()
 	}
 
 }
-func (p *ParserExec) Sent2() {
+func (p *ParserExec) Sent2(attr Attr) Attr {
+
 	switch p.lookahead.Kind {
 	case token.ASIG:
 		switch p.lookahead.Attr {
@@ -847,23 +1184,38 @@ func (p *ParserExec) Sent2() {
 			p.match(token.ASIG, token.ASIG_MULT)
 			p.rule(58)
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 57/58")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 57/58")
+			return error()
 		}
 
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 57/58")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 57/58")
+			return error()
 		}
-		p.Expr()
+		var res = p.Expr(attr)
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 57")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil) // 57")
+			return error()
 		}
 		p.match(token.PUNTOYCOMA, nil)
+
+		entry, ok := p.lexer.STManager.GetEntry(attr.idPos)
+		if !ok {
+			errors.NewError(errors.SEMANTICAL, errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+
+		at := entry.GetType()
+		if res.tipo != ERROR && (at.String() == res.tipo.String()) {
+			attr.tipo = OK
+			return attr
+		} else {
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, at.String())
+			return error()
+		}
 
 	case token.ABRIR_PAR:
 		p.match(token.ABRIR_PAR, nil)
@@ -873,56 +1225,72 @@ func (p *ParserExec) Sent2() {
 			token.REAL_LITERAL, token.STRING_LITERAL:
 			if p.lookahead.Kind == token.LOGICO {
 				if p.lookahead.Attr != token.LOG_NEG {
-					errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 59")
-					return
+					errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 59")
+					return error()
 				}
 			}
 		default:
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 59")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 59")
+			return error()
 		}
 
-		p.ParamList()
+		i, _ := p.lookahead.Attr.(int)
+		entry, ok := p.lexer.STManager.GetEntry(i)
+		if !ok {
+			errors.NewError(errors.SEMANTICAL, errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		if entry.GetType().String() != FUNCTION.String() {
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, FUNCTION.String())
+			return error()
+		}
+		numParam := entry.GetAttribute("numParam").Value().(int)
+		tipoParam := entry.GetAttribute("tipoParam").Value().([]string)
+
+		attr := Attr{numParam: numParam, tipoParam: tipoParam, posActual: 0}
+		var res = p.ParamList(attr)
 		if p.lookahead.Kind != token.CERRAR_PAR {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 59")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 59")
+			return error()
 		}
 		p.match(token.CERRAR_PAR, nil)
 
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 59")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil) // 59")
+			return error()
 		}
 		p.match(token.PUNTOYCOMA, nil)
+		return res
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 57-59")
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 57-59"
+		return error()
 	}
 }
-func (p *ParserExec) ReturnExp() {
+func (p *ParserExec) ReturnExp() Attr {
 	switch p.lookahead.Kind {
 	case token.LOGICO:
 		if p.lookahead.Attr != token.LOG_NEG {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 60/61")
-			return
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 60/61")
+			return error()
 		}
 	case token.ARITM, token.INT_LITERAL, token.REAL_LITERAL, token.STRING_LITERAL,
 		token.ID, token.ABRIR_PAR:
 		break
 	case token.PUNTOYCOMA:
 		p.rule(61)
-		return
+		return Attr{tipo: VOID}
 	default:
-		errors.NewError(errors.SINTACTICAL, errors.S_INVALID_EXP, nil) // 61")
-		return
+		errors.SintacticalError(errors.S_INVALID_EXP, nil) // 61")
+		return error()
 	}
 	p.rule(60)
 	t := p.lookahead.Kind
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 60")
-		return
+		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 60")
+		return error()
 	}
-	p.Expr()
+	return p.Expr(Attr{})
 
 }

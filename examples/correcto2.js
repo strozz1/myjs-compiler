@@ -2,7 +2,9 @@
 /* El ejemplo incorpora elementos del lenguaje opcionales y elementos que no todos los grupos tienen que implementar */
 
 let string/* variable global cadena */
-	s; 	
+	s; 
+
+let int s;
 	
 function int FactorialRecursivo (int _n)	/* _n: parámetro formal de la función entera */
 {

@@ -6,42 +6,53 @@ import (
 	"os"
 )
 
-type LexemeKind int
+type EntryType int
 
 // Defines all the possible types of a lexeme.
 // The 'LEXEME NONE' represents a lexeme that either hasn't been asigned yet
 // or that it doesn't have a type.
 const (
-	LEXEME_NONE LexemeKind = iota
-	LEXEME_FUNCTION
-	LEXEME_PROCEDURE
-	LEXEME_INTEGER
-	LEXEME_STRING
-	LEXEME_REAL
-	LEXEME_LOGIC
-	LEXEME_POINTER
-	LEXEME_VECTOR
+	LEXEME_NONE EntryType = iota
+	INT
+	FLOAT
+	STRING
+	FUNCTION
+	BOOLEAN
 )
 
-func (l LexemeKind) String() string {
+func (l EntryType) Equals(a int) bool {
+	return a == int(l)
+}
+
+func FromString(s string) EntryType {
+	var str EntryType
+	switch s {
+	case "function":
+		str = FUNCTION
+	case "int":
+		str = INT
+	case "string":
+		str = STRING
+	case "float":
+		str = FLOAT
+	case "boolean":
+		str = BOOLEAN
+	}
+	return str
+}
+func (l EntryType) String() string {
 	var str string
 	switch l {
-	case LEXEME_FUNCTION:
-		str = "funcion"
-	case LEXEME_PROCEDURE:
-		str = "procedimiento"
-	case LEXEME_INTEGER:
-		str = "entero"
-	case LEXEME_STRING:
-		str = "cadena"
-	case LEXEME_REAL:
-		str = "real"
-	case LEXEME_LOGIC:
-		str = "logico"
-	case LEXEME_POINTER:
-		str = "puntero"
-	case LEXEME_VECTOR:
-		str = "vector"
+	case FUNCTION:
+		str = "function"
+	case INT:
+		str = "int"
+	case STRING:
+		str = "string"
+	case FLOAT:
+		str = "float"
+	case BOOLEAN:
+		str = "boolean"
 	default:
 		str = "indefinido"
 	}
@@ -51,9 +62,13 @@ func (l LexemeKind) String() string {
 type Entry struct {
 	id         int                   //id of Entry
 	lexeme     string                //lexeme
-	kind       LexemeKind            //lexeme kind
+	entry_type EntryType             //lexeme kind
 	Attributes map[string]*Attribute //attribute list
-	Pos        int                   // pos
+	pos        int
+}
+
+func (e *Entry) GetPos() int {
+	return e.pos
 }
 
 // Creates new symbol entry from the original lexeme.
@@ -64,33 +79,37 @@ func NewEntry(lex string) *Entry {
 	return &Entry{
 		Attributes: map[string]*Attribute{},
 		lexeme:     lex,
-		kind:       LEXEME_NONE,
+		entry_type: LEXEME_NONE,
 	}
 
+}
+func (e *Entry) GetAttribute(a string) *Attribute {
+	return e.Attributes[a]
+}
+func (e *Entry) GetType() EntryType {
+	return e.entry_type
 }
 
 // sets the type of the lexeme
 // IF an invalid lexem type is provided, an error is returned
-func (e *Entry) SetType(t LexemeKind) error {
+func (e *Entry) setType(t EntryType,offset int) error {
 	switch t {
-	case LEXEME_FUNCTION:
-	case LEXEME_PROCEDURE:
-	case LEXEME_INTEGER:
-	case LEXEME_STRING:
-	case LEXEME_REAL:
-	case LEXEME_LOGIC:
-	case LEXEME_POINTER:
-	case LEXEME_VECTOR:
+	case FUNCTION:
+	case INT:
+	case STRING:
+	case FLOAT:
+	case BOOLEAN:
 	case LEXEME_NONE:
 	default:
 		{
 			if DEBUG {
 				fmt.Printf("DEBUG: Invalid Lexeme Type: [%v]\n\r", t)
 			}
-			return fmt.Errorf("Error: Invalid Lexem type: [%v]", t)
+			return fmt.Errorf("Error: Invalid Lexeme type: [%v]", t)
 		}
 	}
-	e.kind = t
+	e.entry_type = t
+	e.SetAttributeValue("despl",offset)
 	return nil
 }
 
@@ -100,10 +119,10 @@ func (e *Entry) Write(w io.Writer) {
 	fmt.Fprintf(w, "* LEXEMA: '%v'\r\n", e.lexeme)
 	fmt.Fprintln(w, "  Atributos:")
 	fmt.Fprintf(w, "    + Tipo: ")
-	if e.kind == LEXEME_NONE {
+	if e.entry_type == LEXEME_NONE {
 		fmt.Fprintf(w, "'-'")
 	} else {
-		fmt.Fprintf(w, "'%v'", e.kind.String())
+		fmt.Fprintf(w, "'%v'", e.entry_type.String())
 	}
 	fmt.Fprintln(w)
 	for _, at := range e.Attributes {

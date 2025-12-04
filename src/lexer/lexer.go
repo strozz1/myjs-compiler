@@ -31,7 +31,7 @@ func (st TokenState) toError() errors.ErrorCode {
 	case FLOAT:
 		error = errors.C_MALFORMED_FLOAT
 	case STRING:
-		error=errors.C_MALFORMED_STRING
+		error = errors.C_MALFORMED_STRING
 	case ID:
 		error = errors.C_MALFORMED_ID
 	}
@@ -47,6 +47,8 @@ type Lexer struct {
 	intVal     int64
 	decimalPos int
 	tokenState TokenState
+
+	declZone bool
 
 	//buffer input reader
 	reader *bufio.Reader
@@ -79,12 +81,16 @@ func NewLexer(r *bufio.Reader) (*Lexer, error) {
 		currentChar: char,
 		reader:      r,
 		tokens:      []token.Token{},
+		declZone:    false,
 		STManager:   st.NewSTManager(),
 	}
 	sc.transitions = GenerateTransitions(&sc)
 	return &sc, nil
 }
 
+func (s *Lexer) DeclarationZone(d bool){
+	s.declZone=d;
+}
 // Check if 'token' is a reserved keyword
 func (s *Lexer) isReserved(token string) bool {
 	return slices.Contains(s.STManager.ReservedWords, token)
@@ -124,7 +130,7 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 	var ok bool = false
 	var tk token.Token
 	for !ok && !s.EOF {
-		transition, transOk:= s.transitions.Find(s.currentChar)
+		transition, transOk := s.transitions.Find(s.currentChar)
 		if transition == nil {
 			if !transOk {
 				//if invalid id,number,..

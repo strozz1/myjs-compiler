@@ -35,6 +35,21 @@ const (
 	S_EXPECTED_SEMICOLON
 	S_EXPECTED_RET_EXP
 	S_EXPECTED_EXP_LOG
+	S_TYPE
+
+	SS_IDENTIFIER_DEFINED
+	SS_ID_NOT_FOUND
+	SS_INVALID_EXP_TYPE
+	SS_NUM_PARAMS_INV
+	SS_EXPECTED_WHILE_COND
+	SS_EXPECTED_BOOLEANS
+	SS_NEGATION_EXPECTED_BOOL
+	SS_INVALID_ARIT_TYPES
+	SS_RELATIONAL_TYPES
+SS_INVALID_RETURN
+	SS_RETURN_OUTSIDE
+	SS_INVALID_SIGN_TYPE
+SS_IF_COND
 )
 
 type Error struct {
@@ -92,6 +107,8 @@ func (c ErrorCode) string(val any) string {
 		//SINTACTICAL
 	case S_INVALID_EXP:
 		str = "La expresion no es valida"
+	case S_TYPE:
+		str = "Se espera un Tipo"
 	case S_EXPECTED_EXP:
 		str = "Se esperaba expresion"
 	case S_EXPECTED_WHILE_CORCH:
@@ -114,6 +131,32 @@ func (c ErrorCode) string(val any) string {
 		str = "Se esperaba expresion de retorno"
 	case S_EXPECTED_EXP_LOG:
 		str = "Se esperaba expresion logica"
+	case SS_IDENTIFIER_DEFINED:
+		str = fmt.Sprintf("El identificador '%s' ya existe", val)
+	case SS_ID_NOT_FOUND:
+		str = fmt.Sprintf("El identificador '%s' no existe", val)
+	case SS_INVALID_EXP_TYPE:
+		str = fmt.Sprintf("Se espera expresion de tipo '%s'", val)
+	case SS_NUM_PARAMS_INV:
+		str = fmt.Sprintf("Numero de parametros invalidos: %s", val)
+	case SS_EXPECTED_WHILE_COND:
+		str = fmt.Sprintf("Condicion do-while erronea. Se esperaba 'boolean', se tiene '%s'", val)
+	case SS_EXPECTED_BOOLEANS:
+		str = fmt.Sprintf("Se esperaba comparacion de dos expresiones logicas, se tiene '%s'", val)
+	case SS_NEGATION_EXPECTED_BOOL:
+		str = fmt.Sprintf("Se esperaba un boolean en la operacion logica de negacion, se obtuvo '%s'", val)
+	case SS_INVALID_ARIT_TYPES:
+		str = fmt.Sprintf("Tipos aritmeticos invalidos, se esperaban tipos numericos iguales, se obtuvo %s", val)
+	case SS_INVALID_SIGN_TYPE:
+		str = fmt.Sprintf("No se puede usar signo al tipo '%s'", val)
+	case SS_RELATIONAL_TYPES:
+		str = fmt.Sprintf("Los tipos de la expresion de relacion deben ser los mismos, se obtuvo %s", val)
+	case SS_RETURN_OUTSIDE:
+		str = "Expresion de retorno fuera de funcion"
+	case SS_INVALID_RETURN:
+		str = fmt.Sprintf("Tipo de retorno invalido, %s", val)
+	case SS_IF_COND:
+		str = fmt.Sprintf("La condicion del IF debe ser booleana, se obtuvo '%s'", val)
 	default:
 		str = "interal error"
 	}

@@ -33,12 +33,6 @@ digraph DFA{
     S6 -> S6 [label="d/l/_"];
     S6 -> F6 [label="c'"];
 
-    S0 -> S10 [label="/"];
-    S10 -> S11 [label="*"];
-    S11 -> S11 [label="c1"];
-    S11 -> S12 [label="*"];
-    S12 -> S11 [label="c2"];
-    S12 -> F9 [label="/"];
 
     S0 -> F10 [label="{"];
     S0 -> F11 [label="}"];
@@ -52,6 +46,13 @@ digraph DFA{
     
     S0 -> S13 [label="&"];
     S13 -> F18 [label="&"];
+    S0 -> S10 [label="/"];
+    S10 -> S11 [label="*"];
+    S11 -> S11 [label="c1"];
+    S11 -> S12 [label="*"];
+    S12 -> S12 [label="*"];
+    S12 -> S11 [label="c2"];
+    S12 -> S0 [label="/"];
 
     S0 [shape=circle];
     S1 [shape=circle];
@@ -77,7 +78,6 @@ digraph DFA{
     F6 [shape=doublecircle];
     F7 [shape=doublecircle];
     F8 [shape=doublecircle];
-    F9 [shape=doublecircle];
     F10 [shape=doublecircle];
     F11 [shape=doublecircle];
     F12 [shape=doublecircle];

@@ -9,8 +9,10 @@ type SymbolTable struct {
 	id     int
 	name   string
 	table  map[string]*Entry
+	keys   []string
 	inner  *SymbolTable
 	parent *SymbolTable
+	offset int
 }
 
 // Interal function to create a new SymbolTable.
@@ -20,37 +22,43 @@ func createST(name string) *SymbolTable {
 	return &SymbolTable{
 		id:    stIdCounter,
 		name:  name,
+		keys:  []string{},
+		offset: 0,
 		table: map[string]*Entry{},
 	}
 
 }
 
-func (s *SymbolTable) GetEntry(name string) (*Entry, bool) {
+func (s *SymbolTable) GetEntry(pos int) (*Entry, bool) {
+	if len(s.keys) <= pos {
+		return nil, false
+	}
+	name := s.keys[pos]
 	a, ok := s.table[name]
 	return a, ok
 }
 
 // Adds a new Symbol/Entry to the table. If it already exists returns a nil.
-func (s *SymbolTable) AddEntry(lex string) *Entry {
+func (s *SymbolTable) AddEntry(lex string) (int, bool) {
 	e, err := s.table[lex]
 	if err {
 		if DEBUG {
 			fmt.Printf("DEBUG: Failed to insert already existing Symbol '%v' on table [%v]\n\r", lex, s.name)
 		}
-		return e
+		return -1, false
 	}
-	l := len(s.table)
 	e = NewEntry(lex)
-	e.Pos = l
 	s.table[lex] = e
-	a, ok := s.table[lex]
+	s.keys = append(s.keys, lex)
+	_, ok := s.table[lex]
 	if DEBUG {
 		fmt.Printf("DEBUG: Added new entry '%v' to table '%v'\n\r", lex, s.name)
 		if !ok {
 			fmt.Printf("ERROR: cant add entry '%v' to table %s\n", lex, s.name)
 		}
 	}
-	return a
+	e.pos = len(s.keys) - 1
+	return e.pos, ok
 }
 
 func (s *SymbolTable) RemoveEntry(lex string) {

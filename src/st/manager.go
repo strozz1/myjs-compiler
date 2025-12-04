@@ -11,9 +11,9 @@ var DEBUG bool
 var stIdCounter = 0
 
 type STManager struct {
-	Global        *SymbolTable
-	Local         *SymbolTable
-	Current       *SymbolTable
+	Global  *SymbolTable
+	Local   *SymbolTable
+	Current *SymbolTable
 
 	ReservedWords []string
 	//Defines the set of available attributes. This attributes are only the
@@ -22,17 +22,31 @@ type STManager struct {
 	Attributes map[string]Attribute
 }
 
+func (m *STManager) SearchEntry(lexeme string) (*Entry, bool) {
+	a, ok := m.Current.table[lexeme]
+	return a, ok
+}
+
+func (m *STManager) EntryExists(e int) bool {
+	_, b := m.GetEntry(e)
+	return b
+}
+
+func (m *STManager) AddEntry(lexeme string) (int, bool) {
+	return m.Current.AddEntry(lexeme)
+}
+
 // Creates a new SymbolTable Manager.
 // Initializes the global SymbolTable.
 func NewSTManager() *STManager {
 	if DEBUG {
 		fmt.Printf("DEBUG: Initializing STManager\n\r")
 	}
-	global:=createST("Global Table")
+	global := createST("Global Table")
 	return &STManager{
-		Global: global,
+		Global:     global,
 		Attributes: map[string]Attribute{},
-		Current: global,
+		Current:    global,
 	}
 }
 
@@ -47,41 +61,41 @@ func (m *STManager) CreateAttribute(name string, d string, t AttributeType) {
 	}
 	m.Attributes[name] = NewAttribute(name, t, d)
 	if DEBUG {
-		fmt.Printf("DEBUG: Created new attribute '%v' of type: '%v' & desc: '%v'\n\r", name, t, d)
+		fmt.Printf("DEBUG: Created new ST attribute '%v' of type: '%v' and description: '%v'\n\r", name, t, d)
 	}
 }
 
-func (m *STManager) AddGlobalEntry(name string) *Entry {
-	return m.Global.AddEntry(name)
-}
-
-func (m *STManager) AddLocalEntry(name string) *Entry {
-	if m.Current == nil {
-		if DEBUG {
-			fmt.Println("DEBUG: Can't add entry to a 'nil' table.")
-			return nil
-		}
-	}
-	return m.Current.AddEntry(name)
-}
-
-func (m *STManager) GetGlobalEntry(name string) (*Entry, bool) {
-	v, ok := m.Global.GetEntry(name)
+func (m *STManager) SetEntryType(e *Entry, tt string) {
+	t := FromString(tt)
+	a, ok := m.Attributes["despl"]
 	if !ok {
 		if DEBUG {
-			fmt.Printf("DEBUG: Global entry not found '%v'\n\r", name)
-			return nil, ok
+			fmt.Printf("WARNING: 'despl' attribute not found\n")
 		}
+	} else {
+		e.AddAtribute("despl", a)
 	}
-	return v, ok
+	e.setType(t, m.Current.offset)
+	m.shift(t)
 }
 
-func (m *STManager) RemoveGlobalEntry(name string) {
-	m.Global.RemoveEntry(name)
+func (m *STManager) shift(t EntryType) {
+	var s int = 0
+	switch t {
+	case INT:
+		s = 2
+	case FLOAT:
+		s = 4
+	case STRING:
+		s = 64
+	case BOOLEAN:
+		s = 1
+	}
+	m.Current.offset += s
 }
 
-func (m *STManager) RemoveLocalEntry(name string) {
-	m.Current.RemoveEntry(name)
+func (m *STManager) GetEntry(pos int) (*Entry, bool) {
+	return m.Current.GetEntry(pos)
 }
 
 func (m *STManager) SetEntryAttribute(e *Entry, name string, val any) {
@@ -116,31 +130,31 @@ func (m *STManager) CreateLocalTable(name string) {
 }
 
 // Creates a new scope with a 'name'.
-// The new scope is the inner of the current scope and current will be parent 
+// The new scope is the inner of the current scope and current will be parent
 // of the new scope.
 // Replaces current with new scope
 func (m *STManager) NewScope(name string) {
-	st:=createST(name)
-	m.Current.inner=st
-	st.parent=m.Current
-	m.Current=st
-	if DEBUG{
-		fmt.Printf("DEBUG: New Scope '%v' created\n",name)
+	st := createST(name)
+	m.Current.inner = st
+	st.parent = m.Current
+	m.Current = st
+	if DEBUG {
+		fmt.Printf("DEBUG: New Scope '%v' created\n", name)
 	}
 }
 
 // Destroy current Scope. This functions sets the current scope to the parent scope of 'current'.
 // If 'm.Current' is Global Table operation is canceled.
-func (m *STManager) DestroyScope(){
-	if m.Current==m.Global{
-		if DEBUG{
+func (m *STManager) DestroyScope() {
+	if m.Current == m.Global {
+		if DEBUG {
 			fmt.Printf("DEBUG: trying to destroy Global Table, operation canceled\n")
 		}
-	}else{
-		if DEBUG{
-			fmt.Printf("DEBUG: Scope '%v' destroyed\n",m.Current.name)
+	} else {
+		if DEBUG {
+			fmt.Printf("DEBUG: Scope '%v' destroyed\n", m.Current.name)
 		}
-		m.Current=m.Current.parent
+		m.Current = m.Current.parent
 	}
 }
 

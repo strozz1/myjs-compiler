@@ -24,7 +24,13 @@ func NewErrorManager() {
 func NewError(kind ErrorKind, code ErrorCode, val any) {
 	manager.errors = append(manager.errors, newError(kind, code, manager.currentLine, val))
 }
+func SintacticalError(code ErrorCode, val any) {
+	manager.errors = append(manager.errors, newError(SINTACTICAL, code, manager.currentLine, val))
+}
 
+func SemanticalError(code ErrorCode, val any) {
+	manager.errors = append(manager.errors, newError(SEMANTICAL, code, manager.currentLine, val))
+}
 // When Lexer detecs new line, it calls this function to notifies the ErrorManager, so when the next error occurs,
 // it can have the error's line
 func NewLine() {

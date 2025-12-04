@@ -1,11 +1,30 @@
 Global Table #1:
-* LEXEMA: 'logico'
+* LEXEMA: 'bbb'
   Atributos:
-    + Tipo: '-'
-* LEXEMA: 'a'
+    + Tipo: 'boolean'
+    + despl: 4
+* LEXEMA: 'z'
   Atributos:
-    + Tipo: '-'
-* LEXEMA: 'arit'
+    + Tipo: 'int'
+    + despl: 5
+* LEXEMA: 'rrr'
   Atributos:
-    + Tipo: '-'
-------------------------------------------
+    + Tipo: 'float'
+    + despl: 7
+* LEXEMA: 'ccc'
+  Atributos:
+    + Tipo: 'float'
+    + despl: 11
+* LEXEMA: 'c'
+  Atributos:
+    + Tipo: 'boolean'
+    + despl: 15
+* LEXEMA: 'a'
+  Atributos:
+    + Tipo: 'int'
+    + despl: 0
+* LEXEMA: 'b'
+  Atributos:
+    + Tipo: 'int'
+    + despl: 2
+------------------------------------------

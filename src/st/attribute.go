@@ -11,6 +11,7 @@ type AttributeType int
 const (
 	T_INTEGER AttributeType = iota
 	T_STRING
+	T_BOOLEAN
 	T_ARRAY
 	T_NONE
 )
@@ -23,6 +24,19 @@ type Attribute struct {
 	intVal    int           //Int value if Type is Int
 	arrayVal  []string      //Array value if Type is Array
 	hasValue  bool          //Flag if value has been asigned
+}
+
+
+func (a *Attribute) Value() any {
+	switch a.Type {
+	case T_INTEGER:
+		return a.intVal
+	case T_STRING:
+		return a.stringVal
+	case T_ARRAY:
+		return a.arrayVal
+	}
+	return nil
 }
 
 // Creates new attribute

@@ -308,9 +308,23 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		if sc.isReserved(sc.lexeme) {
 			tk = token.NewToken(token.From(sc.lexeme), sc.lexeme, "")
 		} else {
-			val := sc.STManager.AddGlobalEntry(sc.lexeme)
-			if val != nil {
-				tk = token.NewToken(token.ID, sc.lexeme, val.Pos)
+			if sc.declZone {
+				val, ok := sc.STManager.AddEntry(sc.lexeme)
+				tk = token.NewToken(token.ID, sc.lexeme, val)
+				if ok {
+					if DEBUG {
+						fmt.Printf("DEBUG: Inserted new ID: %s in ST\n", tk.Lexeme)
+					}
+				} else {
+					errors.NewError(errors.SEMANTICAL, errors.SS_IDENTIFIER_DEFINED, sc.lexeme)
+				}
+			} else {
+				entry, ok := sc.STManager.SearchEntry(sc.lexeme)
+				if !ok {
+					errors.SemanticalError(errors.SS_ID_NOT_FOUND, sc.lexeme)
+					return tk, true
+				}
+				tk = token.NewToken(token.ID, sc.lexeme, entry.GetPos())
 			}
 			//TODO: check ST
 		}
@@ -344,7 +358,11 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		sc.nextChar()
 		return token.Token{}, false
 	})
-	t.addTransition(S12, F9, '/', nil, func() (token.Token, bool) {
+	t.addTransition(S12, S12, '*', nil, func() (token.Token, bool) {
+		sc.nextChar()
+		return token.Token{}, false
+	})
+	t.addTransition(S12, S0, '/', nil, func() (token.Token, bool) {
 		sc.nextChar()
 		return token.Token{}, false
 	})
@@ -468,7 +486,7 @@ var matchNotEq = func(c rune) bool {
 	return c != '='
 }
 var matchNotDotOrDigit = func(c rune) bool {
-    return c != '.' && (c < '0' || c > '9')
+	return c != '.' && (c < '0' || c > '9')
 }
 
 var matchNotDigit = func(c rune) bool {
