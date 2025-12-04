@@ -1,0 +1,12 @@
+let int num;
+function void adivinar(int a){
+    if(a==23)
+        write 'Has adivinado el numero!';
+    
+    return;
+}
+
+write 'Adivina el numero:';
+read num;
+adivinar(num);
+write 'Fin del programa';

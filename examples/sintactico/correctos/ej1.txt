@@ -1,0 +1,14 @@
+let int a;
+let int b;
+let int number;
+write 'Primer numero';
+read a;
+write 'Segundo numero';
+read b;
+
+function int resta_entera(int num1, int num2){
+	return num1-num2;
+}
+number = operacion(a, b);
+write number;
+

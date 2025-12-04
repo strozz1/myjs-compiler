@@ -1,0 +1,12 @@
+let string minombre;
+function void pedirNombre(void){
+	write 'Introduce tu nombre';
+	read minombre;
+}
+
+function void escribir_msg(string mensaje){
+	write mensaje;
+	write minombre;
+}
+pedirNombre();
+escribir_msg('Hola, encantado');

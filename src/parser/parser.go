@@ -158,7 +158,7 @@ func (p *ParserExec) Decl() {
 		}
 		p.match(token.ID, nil)
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 5")
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 5")
 			return
 		}
 		p.match(token.PUNTOYCOMA, nil)
@@ -278,7 +278,7 @@ func (p *ParserExec) Expr2() {
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 11")
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP_LOG, nil) // 11")
 			return
 		}
 		p.ExpRel()
@@ -286,7 +286,7 @@ func (p *ParserExec) Expr2() {
 		t = p.lookahead.Kind
 		if !(t == token.ARITM || t == token.LOGICO || t == token.CERRAR_PAR ||
 			t == token.PUNTOYCOMA || t == token.COMA) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 11b")
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP_LOG, nil) // 11b")
 			return
 		}
 		p.Expr2()
@@ -563,7 +563,7 @@ func (p *ParserExec) DecFunc() {
 	t := p.lookahead.Kind
 	if !(t == token.STRING || t == token.VOID || t == token.INT ||
 		t == token.FLOAT || t == token.BOOLEAN) {
-		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 36")
+		errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_FUNCTYPE, nil) // 36")
 		return
 	}
 	p.TipoFunc()
@@ -794,6 +794,10 @@ func (p *ParserExec) Sent() {
 			return
 		}
 		p.Expr()
+		if p.lookahead.Kind != token.PUNTOYCOMA {
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil)
+			return
+		}
 		p.match(token.PUNTOYCOMA, nil)
 
 	case token.READ:
@@ -813,13 +817,17 @@ func (p *ParserExec) Sent() {
 
 	case token.RETURN:
 		p.rule(56)
-		if !p.match(token.RETURN, nil) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 56")
+		p.match(token.RETURN, nil)
+		t := p.lookahead.Kind
+		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
+			t == token.INT_LITERAL || t == token.STRING_LITERAL || t == token.REAL_LITERAL ||
+			t == token.ID || t == token.CERRAR_PAR || t == token.PUNTOYCOMA) {
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_RET_EXP, nil) // 55")
 			return
 		}
 		p.ReturnExp()
 		if !p.match(token.PUNTOYCOMA, nil) {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 55")
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 55")
 			return
 		}
 
@@ -852,7 +860,7 @@ func (p *ParserExec) Sent2() {
 		}
 		p.Expr()
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 57")
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 57")
 			return
 		}
 		p.match(token.PUNTOYCOMA, nil)
@@ -882,7 +890,7 @@ func (p *ParserExec) Sent2() {
 		p.match(token.CERRAR_PAR, nil)
 
 		if p.lookahead.Kind != token.PUNTOYCOMA {
-			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_EXP, nil) // 59")
+			errors.NewError(errors.SINTACTICAL, errors.S_EXPECTED_SEMICOLON, nil) // 59")
 			return
 		}
 		p.match(token.PUNTOYCOMA, nil)

@@ -31,7 +31,10 @@ const (
 	S_MISSING_WHILE
 	S_EXPECTED_ABRIR_PAR
 	S_EXPECTED_CERRAR_PAR
+	S_EXPECTED_FUNCTYPE
 	S_EXPECTED_SEMICOLON
+	S_EXPECTED_RET_EXP
+	S_EXPECTED_EXP_LOG
 )
 
 type Error struct {
@@ -105,6 +108,12 @@ func (c ErrorCode) string(val any) string {
 		str = "Se esperaba apertura de parentesis '('"
 	case S_EXPECTED_SEMICOLON:
 		str = "Falta ';' al final de la expresion"
+	case S_EXPECTED_FUNCTYPE:
+		str = "La funcion no tiene definida el tipo de retorno"
+	case S_EXPECTED_RET_EXP:
+		str = "Se esperaba expresion de retorno"
+	case S_EXPECTED_EXP_LOG:
+		str = "Se esperaba expresion logica"
 	default:
 		str = "interal error"
 	}

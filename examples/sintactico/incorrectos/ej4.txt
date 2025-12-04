@@ -1,0 +1,17 @@
+let int numero;
+numero=2;
+
+numero=numero+2-5+0;
+function void sum_num(int num){
+    num=;
+    return num;
+}
+
+function void rest_num(int num){
+    num=num-2;
+    return num;
+}
+sum_num(numero);
+write 'El numero se ha sumado';
+rest_num(numero);
+write 'El numero se ha restado';

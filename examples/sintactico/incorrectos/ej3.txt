@@ -1,0 +1,10 @@
+let int arit;
+
+arit=23+4-(23-2);
+
+function boolean logico(boolean a){
+    return !(a && 5!=5)
+}
+
+arit=logico(arit);
+write arit;

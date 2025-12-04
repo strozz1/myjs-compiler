@@ -1,0 +1,13 @@
+let string entrada;
+
+write 'Introduzca nombre';
+read entrada;
+
+function mostrarNombre(string name){
+    write 'Tu nombre es';
+    write name;
+}
+
+mostrarNombre(entrada);
+let int dos=2;
+dos=dos+2;
