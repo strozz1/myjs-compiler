@@ -2,7 +2,6 @@ package st
 
 import (
 	"fmt"
-	"io"
 )
 
 // Defines the types that an attribute can be
@@ -25,7 +24,6 @@ type Attribute struct {
 	arrayVal  []string      //Array value if Type is Array
 	hasValue  bool          //Flag if value has been asigned
 }
-
 
 func (a *Attribute) Value() any {
 	switch a.Type {
@@ -51,24 +49,26 @@ func NewAttribute(name string, tp AttributeType, ad string) Attribute {
 
 // Writes the Attribute from an Entry to the specified Writer with
 // PDL specified format
-func (a *Attribute) Write(w io.Writer) {
+func (a *Attribute) Write() string {
+	b := ""
 	switch a.Type {
 	case T_INTEGER:
-		fmt.Fprintf(w, "    + %v: %v\n\r", a.Desc, a.intVal)
+		b += fmt.Sprintf("    + %v: %v\n\r", a.Desc, a.intVal)
 	case T_STRING:
 		if a.hasValue {
-			fmt.Fprintf(w, "    + %v: '%v'\n\r", a.Desc, a.stringVal)
+			b += fmt.Sprintf("    + %v: '%v'\n\r", a.Desc, a.stringVal)
 		} else {
-			fmt.Fprintf(w, "    + %v: '-'\n\r", a.Desc)
+			b += fmt.Sprintf("    + %v: '-'\n\r", a.Desc)
 		}
 	case T_ARRAY:
 		if a.hasValue {
 			for i, v := range a.arrayVal {
-				fmt.Fprintf(w, "    + %v%v: '%v'\n\r", a.Desc, i, v)
+				b += fmt.Sprintf("    + %v%v: '%v'\n\r", a.Desc, i, v)
 			}
-			return
+
 		} else {
-			fmt.Fprintf(w, "    + %v: '-'\n\r", a.Desc)
+			b += fmt.Sprintf("    + %v: '-'\n\r", a.Desc)
 		}
 	}
+	return b
 }

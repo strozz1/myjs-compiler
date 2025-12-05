@@ -321,12 +321,14 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 			} else {
 				entry, ok := sc.STManager.SearchEntry(sc.lexeme)
 				if !ok {
-					errors.SemanticalError(errors.SS_ID_NOT_FOUND, sc.lexeme)
-					return tk, true
+					val, _ := sc.STManager.AddEntry(sc.lexeme)
+					e,_:=sc.STManager.GetEntry(val)
+					sc.STManager.SetEntryType(e,"int")
+					tk = token.NewToken(token.ID, sc.lexeme, val)
+				} else {
+					tk = token.NewToken(token.ID, sc.lexeme, entry.GetPos())
 				}
-				tk = token.NewToken(token.ID, sc.lexeme, entry.GetPos())
 			}
-			//TODO: check ST
 		}
 		return tk, true
 	})

@@ -2,8 +2,6 @@ package st
 
 import (
 	"fmt"
-	"io"
-	"os"
 )
 
 type EntryType int
@@ -12,7 +10,7 @@ type EntryType int
 // The 'LEXEME NONE' represents a lexeme that either hasn't been asigned yet
 // or that it doesn't have a type.
 const (
-	LEXEME_NONE EntryType = iota
+	NO_TYPE EntryType = iota
 	INT
 	FLOAT
 	STRING
@@ -79,7 +77,7 @@ func NewEntry(lex string) *Entry {
 	return &Entry{
 		Attributes: map[string]*Attribute{},
 		lexeme:     lex,
-		entry_type: LEXEME_NONE,
+		entry_type: NO_TYPE,
 	}
 
 }
@@ -92,14 +90,14 @@ func (e *Entry) GetType() EntryType {
 
 // sets the type of the lexeme
 // IF an invalid lexem type is provided, an error is returned
-func (e *Entry) setType(t EntryType,offset int) error {
+func (e *Entry) setType(t EntryType, offset int) error {
 	switch t {
 	case FUNCTION:
 	case INT:
 	case STRING:
 	case FLOAT:
 	case BOOLEAN:
-	case LEXEME_NONE:
+	case NO_TYPE:
 	default:
 		{
 			if DEBUG {
@@ -109,26 +107,27 @@ func (e *Entry) setType(t EntryType,offset int) error {
 		}
 	}
 	e.entry_type = t
-	e.SetAttributeValue("despl",offset)
+	e.SetAttributeValue("despl", offset)
 	return nil
 }
 
 // Writes the SymbolEntry from the ST to the specified Writer with
 // PDL specified format
-func (e *Entry) Write(w io.Writer) {
-	fmt.Fprintf(w, "* LEXEMA: '%v'\r\n", e.lexeme)
-	fmt.Fprintln(w, "  Atributos:")
-	fmt.Fprintf(w, "    + Tipo: ")
-	if e.entry_type == LEXEME_NONE {
-		fmt.Fprintf(w, "'-'")
+func (e *Entry) Write() string {
+	a := ""
+	a += fmt.Sprintf("* LEXEMA: '%v'\r\n", e.lexeme)
+	a += fmt.Sprintln("  Atributos:")
+	a += "    + Tipo: "
+	if e.entry_type == NO_TYPE {
+		a += "'-'"
 	} else {
-		fmt.Fprintf(w, "'%v'", e.entry_type.String())
+		a += fmt.Sprintf("'%v'", e.entry_type.String())
 	}
-	fmt.Fprintln(w)
+	a += fmt.Sprintln()
 	for _, at := range e.Attributes {
-		at.Write(w)
+		a += at.Write()
 	}
-
+	return a
 }
 
 // Adds a value to the attribute specified with param 'name'.
@@ -200,7 +199,7 @@ func printTable(table map[string]*Attribute) {
 	if DEBUG {
 		fmt.Println("Printing table:")
 		for _, k := range table {
-			k.Write(os.Stdout)
+			fmt.Print(k.Write())
 		}
 	}
 }

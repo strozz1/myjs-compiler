@@ -1,30 +1,37 @@
-Global Table #1:
-* LEXEMA: 'bbb'
+Function pideTexto #2:
+------------------------------------------
+Function output #3:
+* LEXEMA: '_msg'
   Atributos:
-    + Tipo: 'boolean'
-    + despl: 4
-* LEXEMA: 'z'
-  Atributos:
-    + Tipo: 'int'
-    + despl: 5
-* LEXEMA: 'rrr'
-  Atributos:
-    + Tipo: 'float'
-    + despl: 7
-* LEXEMA: 'ccc'
-  Atributos:
-    + Tipo: 'float'
-    + despl: 11
-* LEXEMA: 'c'
-  Atributos:
-    + Tipo: 'boolean'
-    + despl: 15
-* LEXEMA: 'a'
-  Atributos:
-    + Tipo: 'int'
+    + Tipo: 'string'
     + despl: 0
-* LEXEMA: 'b'
+------------------------------------------
+Global Table #1:
+* LEXEMA: 'textoAux'
+  Atributos:
+    + Tipo: 'string'
+    + despl: 64
+* LEXEMA: 'num_real'
   Atributos:
     + Tipo: 'int'
-    + despl: 2
+    + despl: 128
+* LEXEMA: 'texto'
+  Atributos:
+    + Tipo: 'string'
+    + despl: 0
+* LEXEMA: 'pideTexto'
+  Atributos:
+    + Tipo: 'function'
+    + despl: 64
+    + tipoRetorno: 'void'
+    + numParam: 0
+    + etiqFuncion: 'etiq_pideTexto'
+* LEXEMA: 'output'
+  Atributos:
+    + Tipo: 'function'
+    + despl: 64
+    + tipoRetorno: 'void'
+    + numParam: 1
+    + tipoParam0: 'string'
+    + etiqFuncion: 'etiq_output'
 ------------------------------------------

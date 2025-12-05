@@ -34,7 +34,9 @@ func NewParser(lexer *lexer.Lexer) Parser {
 	}
 }
 func (p *Parser) Parse() bool {
-	return (p.parserExec.P(Attr{}).tipo == OK)
+	r := p.parserExec.P(Attr{})
+	p.parserExec.lexer.STManager.DestroyScope()
+	return (r.tipo == OK)
 }
 
 type ParserExec struct {
@@ -162,6 +164,7 @@ func (p *ParserExec) P(attr Attr) Attr {
 		p.rule(2)
 		p.DecFunc(attr)
 
+		p.lexer.STManager.DestroyScope()
 	case token.EOF:
 		p.rule(3)
 		return Attr{tipo: OK}
@@ -743,6 +746,7 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
 		return error()
 	}
+	p.lexer.DeclarationZone(true)
 	p.match(token.FUNCTION, nil)
 	t := p.lookahead.Kind
 	if !(t == token.STRING || t == token.VOID || t == token.INT ||
@@ -754,7 +758,6 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 	if tipo.tipo == ERROR {
 		return error()
 	}
-	p.lexer.DeclarationZone(true)
 	if p.lookahead.Kind != token.ID {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
 		return error()
@@ -765,18 +768,18 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 		errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 		return error()
 	}
+	funcName:=p.lookahead.Lexeme
 	p.lexer.STManager.SetEntryType(e, "function")
-	e.SetAttributeValue("valorRetorno", tipo.tipo.String())
+	e.SetAttributeValue("tipoRetorno", tipo.tipo.String())
 	attr.idPos = i
 	attr.returnType = tipo.tipo
-	etiq := fmt.Sprintf("etiq_%s", p.lookahead.Lexeme)
-	p.lexer.STManager.NewScope(etiq)
 	p.match(token.ID, nil)
 	if p.lookahead.Kind != token.ABRIR_PAR {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
 		return error()
 	}
-	p.lexer.DeclarationZone(false)
+	newScope := fmt.Sprintf("Function %s", funcName)
+	p.lexer.STManager.NewScope(newScope)
 	p.match(token.ABRIR_PAR, nil)
 	t = p.lookahead.Kind
 	if !(t == token.STRING || t == token.VOID || t == token.INT ||
@@ -799,6 +802,7 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
 		return error()
 	}
+	p.lexer.DeclarationZone(false)
 	p.match(token.ABRIR_CORCH, nil)
 	t = p.lookahead.Kind
 	if !(t == token.IF || t == token.LET || t == token.DO || t == token.ID ||
@@ -863,8 +867,9 @@ func (p *ParserExec) FuncParams(attr Attr) Attr {
 	case token.VOID:
 		p.match(token.VOID, nil)
 		p.rule(40)
-		e, ok := p.lexer.STManager.GetEntry(attr.idPos)
+		e, ok := p.lexer.STManager.GetGlobalEntry(attr.idPos)
 		if !ok {
+			fmt.Printf("%v\n", attr.idPos)
 			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 			return error()
 		}
@@ -915,7 +920,7 @@ func (p *ParserExec) FuncParams2(attr Attr) Attr {
 		}
 	case token.CERRAR_PAR:
 		p.rule(42)
-		e, ok := p.lexer.STManager.GetEntry(attr.idPos)
+		e, ok := p.lexer.STManager.GetGlobalEntry(attr.idPos)
 		if !ok {
 			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 			return error()
@@ -1234,14 +1239,13 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 			return error()
 		}
 
-		i, _ := p.lookahead.Attr.(int)
-		entry, ok := p.lexer.STManager.GetEntry(i)
+		entry, ok := p.lexer.STManager.GetEntry(attr.idPos)
 		if !ok {
 			errors.NewError(errors.SEMANTICAL, errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 			return error()
 		}
 		if entry.GetType().String() != FUNCTION.String() {
-			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, FUNCTION.String())
+			errors.SemanticalError(errors.SS_EXPECTED_FUNC, entry.GetType().String())
 			return error()
 		}
 		numParam := entry.GetAttribute("numParam").Value().(int)

@@ -2,7 +2,6 @@ package st
 
 import (
 	"fmt"
-	"io"
 )
 
 type SymbolTable struct {
@@ -20,11 +19,11 @@ type SymbolTable struct {
 func createST(name string) *SymbolTable {
 	stIdCounter++
 	return &SymbolTable{
-		id:    stIdCounter,
-		name:  name,
-		keys:  []string{},
+		id:     stIdCounter,
+		name:   name,
+		keys:   []string{},
 		offset: 0,
-		table: map[string]*Entry{},
+		table:  map[string]*Entry{},
 	}
 
 }
@@ -70,13 +69,15 @@ func (s *SymbolTable) RemoveEntry(lex string) {
 
 // Writes the SymbolTable in the Specified format for PDL.
 // @input: io.Writer
-func (s *SymbolTable) Write(w io.Writer) {
+func (s *SymbolTable) Write() string {
+	a := ""
 	if DEBUG {
 		fmt.Printf("DEBUG: Writing table '%v' to output\n\r", s.name)
 	}
-	fmt.Fprintf(w, "%v #%d:\n\r", s.name, s.id)
+	a += fmt.Sprintf("%v #%d:\n\r", s.name, s.id)
 	for _, i := range s.table {
-		i.Write(w)
+		a += i.Write()
 	}
-	fmt.Fprintln(w, "------------------------------------------")
+	a += fmt.Sprintln("------------------------------------------")
+	return a
 }

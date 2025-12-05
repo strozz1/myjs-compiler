@@ -20,10 +20,16 @@ type STManager struct {
 	//template, so when you want to use it for an Entry you need to take it and modify it with the
 	//corresponding values
 	Attributes map[string]Attribute
+	output     string
 }
+
+
 
 func (m *STManager) SearchEntry(lexeme string) (*Entry, bool) {
 	a, ok := m.Current.table[lexeme]
+	if !ok && (m.Current.name != m.Global.name) {
+		a, ok = m.Global.table[lexeme]
+	}
 	return a, ok
 }
 
@@ -65,6 +71,19 @@ func (m *STManager) CreateAttribute(name string, d string, t AttributeType) {
 	}
 }
 
+func (m *STManager) prepareFuncEntry(e *Entry) {
+
+	a, _ := m.Attributes["tipoRetorno"]
+	e.AddAtribute("tipoRetorno", a)
+	a, _ = m.Attributes["numParam"]
+	e.AddAtribute("numParam", a)
+	a, _ = m.Attributes["tipoParam"]
+	e.AddAtribute("tipoParam", a)
+	a, _ = m.Attributes["etiqFuncion"]
+	e.AddAtribute("etiqFuncion", a)
+	e.SetAttributeValue("etiqFuncion", fmt.Sprintf("etiq_%v", e.lexeme))
+}
+
 func (m *STManager) SetEntryType(e *Entry, tt string) {
 	t := FromString(tt)
 	a, ok := m.Attributes["despl"]
@@ -75,6 +94,11 @@ func (m *STManager) SetEntryType(e *Entry, tt string) {
 	} else {
 		e.AddAtribute("despl", a)
 	}
+	switch t {
+	case FUNCTION:
+		m.prepareFuncEntry(e)
+	}
+
 	e.setType(t, m.Current.offset)
 	m.shift(t)
 }
@@ -95,7 +119,15 @@ func (m *STManager) shift(t EntryType) {
 }
 
 func (m *STManager) GetEntry(pos int) (*Entry, bool) {
-	return m.Current.GetEntry(pos)
+	e, ok := m.Current.GetEntry(pos)
+	if !ok && (m.Current.name != m.Global.name) {
+		e, ok = m.Global.GetEntry(pos)
+	}
+	return e, ok
+}
+
+func (m *STManager) GetGlobalEntry(pos int) (*Entry, bool) {
+	return m.Global.GetEntry(pos)
 }
 
 func (m *STManager) SetEntryAttribute(e *Entry, name string, val any) {
@@ -135,7 +167,6 @@ func (m *STManager) CreateLocalTable(name string) {
 // Replaces current with new scope
 func (m *STManager) NewScope(name string) {
 	st := createST(name)
-	m.Current.inner = st
 	st.parent = m.Current
 	m.Current = st
 	if DEBUG {
@@ -146,16 +177,11 @@ func (m *STManager) NewScope(name string) {
 // Destroy current Scope. This functions sets the current scope to the parent scope of 'current'.
 // If 'm.Current' is Global Table operation is canceled.
 func (m *STManager) DestroyScope() {
-	if m.Current == m.Global {
-		if DEBUG {
-			fmt.Printf("DEBUG: trying to destroy Global Table, operation canceled\n")
-		}
-	} else {
-		if DEBUG {
-			fmt.Printf("DEBUG: Scope '%v' destroyed\n", m.Current.name)
-		}
-		m.Current = m.Current.parent
+	if DEBUG {
+		fmt.Printf("DEBUG: Scope '%v' destroyed\n", m.Current.name)
 	}
+	m.output += m.Current.Write()
+	m.Current = m.Current.parent
 }
 
 // Returns if the attribute name already exists in the attribute list
@@ -166,6 +192,6 @@ func (m *STManager) containsAttribute(name string) bool {
 
 // Writes ST to the file specified
 // @st: symbol table to write to the file
-func (m *STManager) Write(writer io.Writer, st *SymbolTable) {
-	st.Write(writer)
+func (m *STManager) Write(writer io.Writer) {
+	fmt.Fprintf(writer, "%s", m.output)
 }

@@ -62,7 +62,7 @@ func main() {
 	//for !lexer.EOF{
 	//	lexer.Lexical()
 	//}
-	lexer.STManager.Write(stFile, lexer.STManager.Current)
+	lexer.STManager.Write(stFile)
 	lexer.WriteTokens(bufio.NewWriter(tkFile))
 
 	parse.Write(bufio.NewWriter(parseFile))
