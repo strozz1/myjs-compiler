@@ -46,13 +46,14 @@ type ParserExec struct {
 }
 
 type Attr struct {
-	tipo       TypeExp
-	idPos      int
-	posActual  int // para params
-	numParam   int
-	tipoParam  []string
-	funcBody   bool
-	returnType TypeExp
+	tipo          TypeExp
+	idPos         int
+	posActual     int // para params
+	numParam      int
+	declParamList []string
+	paramActual   string
+	funcBody      bool
+	returnType    TypeExp
 }
 
 func error() Attr {
@@ -714,6 +715,10 @@ func (p *ParserExec) FactorId(attr Attr) Attr {
 			}
 			attr := Attr{posActual: 0}
 			res := p.ParamList(attr)
+
+			if res.tipo == ERROR {
+				return res
+			}
 			if p.lookahead.Kind != token.CERRAR_PAR {
 				errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 34c")
 				return error()
@@ -768,7 +773,7 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 		errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 		return error()
 	}
-	funcName:=p.lookahead.Lexeme
+	funcName := p.lookahead.Lexeme
 	p.lexer.STManager.SetEntryType(e, "function")
 	e.SetAttributeValue("tipoRetorno", tipo.tipo.String())
 	attr.idPos = i
@@ -788,7 +793,7 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 		return error()
 	}
 	attr.numParam = 0
-	attr.tipoParam = []string{}
+	attr.declParamList = []string{}
 	params := p.FuncParams(attr)
 	if p.lookahead.Kind != token.CERRAR_PAR {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
@@ -843,7 +848,7 @@ func (p *ParserExec) FuncParams(attr Attr) Attr {
 		if tipo.tipo == ERROR {
 			return error()
 		}
-		attr.tipoParam = append(attr.tipoParam, tipo.tipo.String())
+		attr.declParamList = append(attr.declParamList, tipo.tipo.String())
 		attr.numParam++
 		if p.lookahead.Kind != token.ID {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 39")
@@ -874,7 +879,7 @@ func (p *ParserExec) FuncParams(attr Attr) Attr {
 			return error()
 		}
 		e.SetAttributeValue("numParam", attr.numParam) //0
-		e.SetAttributeValue("tipoParam", attr.tipoParam)
+		//e.SetAttributeValue("tipoParam1", attr.tipoParam)
 		attr.tipo = OK
 		return attr
 
@@ -895,7 +900,7 @@ func (p *ParserExec) FuncParams2(attr Attr) Attr {
 			if tipo.tipo == ERROR {
 				return error()
 			}
-			attr.tipoParam = append(attr.tipoParam, tipo.tipo.String())
+			attr.declParamList = append(attr.declParamList, tipo.tipo.String())
 			attr.numParam++
 			if p.lookahead.Kind != token.ID {
 				errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 41a")
@@ -926,7 +931,10 @@ func (p *ParserExec) FuncParams2(attr Attr) Attr {
 			return error()
 		}
 		e.SetAttributeValue("numParam", attr.numParam)
-		e.SetAttributeValue("tipoParam", attr.tipoParam)
+		for a, b := range attr.declParamList {
+			name := fmt.Sprintf("tipoParam%d", a+1)
+			p.lexer.STManager.SetEntryAttribute(e, name, b)
+		}
 		attr.tipo = OK
 		return attr
 
@@ -995,17 +1003,33 @@ func (p *ParserExec) ParamList(attr Attr) Attr {
 		t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 		t == token.STRING_LITERAL || t == token.ABRIR_PAR {
 		p.rule(49)
-		if attr.posActual >= attr.numParam {
-			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
+
+		if attr.posActual+1 > attr.numParam {
+			if attr.numParam == 0 {
+				errors.SemanticalError(errors.SS_NUM_PARAMS_INV, "no se esperaban parametros")
+			} else {
+				errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("Se esperaban %d parametros", attr.numParam))
+			}
 			return error()
 		}
 
+		entry, ok := p.lexer.STManager.GetEntry(attr.idPos)
+		if !ok {
+			errors.NewError(errors.SEMANTICAL, errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+
+		expected := entry.GetAttribute("tipoParam1")
+		if expected == nil {
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, "se esperaba un parametro")
+			return error()
+		}
+		exp := expected.Value().(string)
 		res := p.Expr(attr)
 
-		expected := attr.tipoParam[attr.posActual]
 		if res.tipo == ERROR {
 			return error()
-		} else if expected != res.tipo.String() {
+		} else if exp != res.tipo.String() {
 			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, expected)
 			return error()
 		}
@@ -1021,7 +1045,7 @@ func (p *ParserExec) ParamList(attr Attr) Attr {
 	} else if p.lookahead.Kind == token.CERRAR_PAR {
 		p.rule(50)
 		if attr.posActual < attr.numParam {
-			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, "No se esperaban parametros")
 			return error()
 		}
 	} else {
@@ -1036,10 +1060,6 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 	case token.COMA:
 		p.match(token.COMA, nil)
 		p.rule(51)
-		if attr.posActual >= attr.numParam {
-			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
-			return error()
-		}
 
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
@@ -1048,12 +1068,28 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 51")
 			return error()
 		}
+
+		if attr.posActual+1 >= attr.numParam {
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf(" Se esperaban %d parametros", attr.numParam))
+			return error()
+		}
+		entry, ok := p.lexer.STManager.GetEntry(attr.idPos)
+		if !ok {
+			errors.NewError(errors.SEMANTICAL, errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+
+		expected := entry.GetAttribute(fmt.Sprintf("tipoParam%d", attr.posActual+1))
+		if expected == nil {
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, "se esperaba un parametro")
+			return error()
+		}
+		exp := expected.Value().(string)
 		res := p.Expr(attr)
 
-		expected := attr.tipoParam[attr.posActual]
 		if res.tipo == ERROR {
 			return error()
-		} else if expected != res.tipo.String() {
+		} else if exp != res.tipo.String() {
 			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, expected)
 			return error()
 		}
@@ -1064,12 +1100,12 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 51")
 			return error()
 		}
-		p.ParamList2(attr)
+		return p.ParamList2(attr)
 	case token.CERRAR_PAR:
 		p.rule(52)
 
 		if attr.posActual < attr.numParam {
-			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf("se econtraron '%d'. Se esperaban '%d'", attr.posActual+1, attr.numParam))
+			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf(" Se esperaban %d parametros", attr.numParam))
 			return error()
 		}
 	default:
@@ -1238,21 +1274,22 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 59")
 			return error()
 		}
-
+		if attr.tipo.String() != FUNCTION.String() {
+			errors.SemanticalError(errors.SS_EXPECTED_FUNC, attr.tipo.String())
+			return error()
+		}
 		entry, ok := p.lexer.STManager.GetEntry(attr.idPos)
 		if !ok {
 			errors.NewError(errors.SEMANTICAL, errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 			return error()
 		}
-		if entry.GetType().String() != FUNCTION.String() {
-			errors.SemanticalError(errors.SS_EXPECTED_FUNC, entry.GetType().String())
-			return error()
-		}
 		numParam := entry.GetAttribute("numParam").Value().(int)
-		tipoParam := entry.GetAttribute("tipoParam").Value().([]string)
 
-		attr := Attr{numParam: numParam, tipoParam: tipoParam, posActual: 0}
+		attr.numParam = numParam
 		var res = p.ParamList(attr)
+		if res.tipo == ERROR {
+			return res
+		}
 		if p.lookahead.Kind != token.CERRAR_PAR {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 59")
 			return error()

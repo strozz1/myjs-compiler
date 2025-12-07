@@ -23,8 +23,6 @@ type STManager struct {
 	output     string
 }
 
-
-
 func (m *STManager) SearchEntry(lexeme string) (*Entry, bool) {
 	a, ok := m.Current.table[lexeme]
 	if !ok && (m.Current.name != m.Global.name) {
@@ -77,8 +75,6 @@ func (m *STManager) prepareFuncEntry(e *Entry) {
 	e.AddAtribute("tipoRetorno", a)
 	a, _ = m.Attributes["numParam"]
 	e.AddAtribute("numParam", a)
-	a, _ = m.Attributes["tipoParam"]
-	e.AddAtribute("tipoParam", a)
 	a, _ = m.Attributes["etiqFuncion"]
 	e.AddAtribute("etiqFuncion", a)
 	e.SetAttributeValue("etiqFuncion", fmt.Sprintf("etiq_%v", e.lexeme))
@@ -92,11 +88,12 @@ func (m *STManager) SetEntryType(e *Entry, tt string) {
 			fmt.Printf("WARNING: 'despl' attribute not found\n")
 		}
 	} else {
-		e.AddAtribute("despl", a)
-	}
-	switch t {
-	case FUNCTION:
-		m.prepareFuncEntry(e)
+		switch t {
+		case FUNCTION:
+			m.prepareFuncEntry(e)
+		default:
+			e.AddAtribute("despl", a)
+		}
 	}
 
 	e.setType(t, m.Current.offset)
@@ -107,9 +104,9 @@ func (m *STManager) shift(t EntryType) {
 	var s int = 0
 	switch t {
 	case INT:
-		s = 2
+		s = 1
 	case FLOAT:
-		s = 4
+		s = 2
 	case STRING:
 		s = 64
 	case BOOLEAN:
@@ -180,7 +177,7 @@ func (m *STManager) DestroyScope() {
 	if DEBUG {
 		fmt.Printf("DEBUG: Scope '%v' destroyed\n", m.Current.name)
 	}
-	m.output += m.Current.Write()
+	m.output = m.Current.Write() + m.output
 	m.Current = m.Current.parent
 }
 

@@ -93,6 +93,8 @@ func (e *Entry) GetType() EntryType {
 func (e *Entry) setType(t EntryType, offset int) error {
 	switch t {
 	case FUNCTION:
+		e.entry_type=FUNCTION
+		return nil
 	case INT:
 	case STRING:
 	case FLOAT:
