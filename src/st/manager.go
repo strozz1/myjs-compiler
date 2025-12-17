@@ -37,7 +37,11 @@ func (m *STManager) EntryExists(e int) bool {
 }
 
 func (m *STManager) AddEntry(lexeme string) (int, bool) {
-	return m.Current.AddEntry(lexeme)
+	pos, ok := m.Current.AddEntry(lexeme)
+	if ok && m.Current.name != m.Global.name {
+		return -pos, ok
+	}
+	return pos, ok
 }
 
 // Creates a new SymbolTable Manager.
@@ -116,11 +120,10 @@ func (m *STManager) shift(t EntryType) {
 }
 
 func (m *STManager) GetEntry(pos int) (*Entry, bool) {
-	e, ok := m.Current.GetEntry(pos)
-	if !ok && (m.Current.name != m.Global.name) {
-		e, ok = m.Global.GetEntry(pos)
+	if pos >= 0 {
+		return m.Global.GetEntry(pos)
 	}
-	return e, ok
+	return m.Current.GetEntry(pos)
 }
 
 func (m *STManager) GetGlobalEntry(pos int) (*Entry, bool) {

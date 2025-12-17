@@ -21,14 +21,21 @@ func createST(name string) *SymbolTable {
 	return &SymbolTable{
 		id:     stIdCounter,
 		name:   name,
-		keys:   []string{},
+		keys:   []string{"void"},
 		offset: 0,
 		table:  map[string]*Entry{},
 	}
 
 }
+func absInt(x int) int {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
 
 func (s *SymbolTable) GetEntry(pos int) (*Entry, bool) {
+	pos=absInt(pos)
 	if len(s.keys) <= pos {
 		return nil, false
 	}

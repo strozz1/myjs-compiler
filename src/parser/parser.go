@@ -258,7 +258,6 @@ func (p *ParserExec) Decl(attr Attr) Attr {
 			return error()
 		}
 		res := p.WhileBody(attr)
-		res.funcBody = false
 		return res
 	default:
 		t := p.lookahead.Kind
@@ -654,7 +653,7 @@ func (p *ParserExec) Term2(attr Attr) Attr {
 	case token.ID:
 		p.rule(31)
 		pos := p.lookahead.Attr.(int)
-		attr := Attr{idPos: pos}
+		attr.idPos = pos
 		p.match(token.ID, nil)
 		t := p.lookahead.Kind
 		if !(t == token.ABRIR_PAR || t == token.CERRAR_PAR || t == token.ARITM ||
@@ -664,8 +663,17 @@ func (p *ParserExec) Term2(attr Attr) Attr {
 			return error()
 		}
 		res := p.FactorId(attr)
+		if res.tipo == ERROR {
+			return res
+		}
 
-		tt = res.tipo
+		entry, ok := p.lexer.STManager.GetEntry(pos)
+		if !ok {
+			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
+			return error()
+		}
+		tipo := entry.GetType().String()
+		tt = from(tipo)
 	case token.STRING_LITERAL:
 		p.rule(32)
 		p.match(token.STRING_LITERAL, nil)
@@ -713,7 +721,10 @@ func (p *ParserExec) FactorId(attr Attr) Attr {
 					return error()
 				}
 			}
-			attr := Attr{posActual: 0}
+			num := entry.GetAttribute("numParam").Value().(int)
+			attr.posActual = 0
+			attr.numParam = num
+			fmt.Println(num)
 			res := p.ParamList(attr)
 
 			if res.tipo == ERROR {
@@ -726,7 +737,8 @@ func (p *ParserExec) FactorId(attr Attr) Attr {
 			p.match(token.CERRAR_PAR, nil)
 			if res.tipo == OK {
 				ret := entry.GetAttribute("tipoRetorno").Value().(string)
-				return Attr{tipo: from(ret)}
+				res.tipo = from(ret)
+				return res
 			} else {
 				return Attr{tipo: ERROR}
 			}
@@ -738,7 +750,8 @@ func (p *ParserExec) FactorId(attr Attr) Attr {
 		token.CERRAR_PAR:
 		p.rule(35)
 		t := from(entry.GetType().String())
-		return Attr{tipo: t}
+		attr.tipo = t
+		return attr
 	default:
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 35")
 		return error()
@@ -816,12 +829,16 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
 		return error()
 	}
-	bodyRes := p.FuncBody(attr)
+
+	params.funcBody = true
+	bodyRes := p.FuncBody(params)
+	bodyRes.funcBody = false
 	if p.lookahead.Kind != token.CERRAR_CORCH {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 36")
 		return error()
 	}
 	p.match(token.CERRAR_CORCH, nil)
+
 	return bodyRes
 }
 
@@ -971,7 +988,7 @@ func (p *ParserExec) Tipo() Attr {
 }
 
 func (p *ParserExec) FuncBody(attr Attr) Attr {
-	attr.returnType = VOID //TODO: revisar esto
+
 	switch p.lookahead.Kind {
 	case token.IF, token.LET, token.DO, token.ID, token.READ, token.WRITE,
 		token.RETURN: //first Decl
@@ -990,7 +1007,8 @@ func (p *ParserExec) FuncBody(attr Attr) Attr {
 		return p.FuncBody(attr)
 	case token.CERRAR_CORCH:
 		p.rule(48)
-		return Attr{tipo: OK}
+		attr.tipo = OK
+		return attr
 	default:
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil)
 		return error()
@@ -1030,7 +1048,8 @@ func (p *ParserExec) ParamList(attr Attr) Attr {
 		if res.tipo == ERROR {
 			return error()
 		} else if exp != res.tipo.String() {
-			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, expected)
+			fmt.Println(res.tipo.String())
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, exp)
 			return error()
 		}
 		attr.posActual++
@@ -1052,7 +1071,8 @@ func (p *ParserExec) ParamList(attr Attr) Attr {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 50")
 		return error()
 	}
-	return Attr{tipo: OK}
+	attr.tipo = OK
+	return attr
 }
 
 func (p *ParserExec) ParamList2(attr Attr) Attr {
@@ -1112,7 +1132,8 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 52")
 		return error()
 	}
-	return Attr{tipo: OK}
+	attr.tipo = OK
+	return attr
 }
 
 func (p *ParserExec) Sent(attr Attr) Attr {
@@ -1156,7 +1177,8 @@ func (p *ParserExec) Sent(attr Attr) Attr {
 		if exp.tipo == ERROR {
 			return error()
 		}
-		return Attr{tipo: OK}
+		attr.tipo = OK
+		return attr
 
 	case token.READ:
 		p.rule(55)
@@ -1236,6 +1258,7 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 57/58")
 			return error()
 		}
+
 		var res = p.Expr(attr)
 		if p.lookahead.Kind != token.PUNTOYCOMA {
 			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil) // 57")
@@ -1284,8 +1307,10 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 			return error()
 		}
 		numParam := entry.GetAttribute("numParam").Value().(int)
-
+		retType := entry.GetAttribute("tipoRetorno").Value().(string)
+		attr.returnType = from(retType)
 		attr.numParam = numParam
+
 		var res = p.ParamList(attr)
 		if res.tipo == ERROR {
 			return res

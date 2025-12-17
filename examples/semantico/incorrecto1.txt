@@ -1,0 +1,18 @@
+/* Ejemplo de Prueba... */
+
+let int int1;
+let string cadena;read cadena;
+let boolean logico1;let boolean logico2 ;
+let float llff11;
+int1 = 873;
+
+int2 = 378;
+if (logico1 && logico2) cadena = ' hello!';
+
+function string ff(string sss)
+{
+	global = 33;
+	logico1 =  logico2;
+	return sss;
+	if (logico1) sss = ff (cadena);
+}
