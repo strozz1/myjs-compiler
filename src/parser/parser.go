@@ -160,11 +160,16 @@ func (p *ParserExec) P(attr Attr) Attr {
 	case token.LET, token.ID, token.IF, token.DO, token.READ, token.WRITE, token.RETURN:
 		p.rule(1)
 
-		p.Decl(attr)
+		res := p.Decl(attr)
+		if res.tipo == ERROR {
+			return error()
+		}
 	case token.FUNCTION:
 		p.rule(2)
-		p.DecFunc(attr)
-
+		res := p.DecFunc(attr)
+		if res.tipo == ERROR {
+			return error()
+		}
 		p.lexer.STManager.DestroyScope()
 	case token.EOF:
 		p.rule(3)
@@ -180,8 +185,11 @@ func (p *ParserExec) P(attr Attr) Attr {
 		//os.Exit(1);
 		return error()
 	}
-	p.P(attr)
-	return Attr{tipo: OK} //todo
+	res := p.P(attr)
+	if res.tipo == ERROR {
+		return error()
+	}
+	return res
 }
 
 func (p *ParserExec) Decl(attr Attr) Attr {
@@ -531,10 +539,11 @@ func (p *ParserExec) AritExp2(attr Attr) Attr {
 			return error()
 		}
 		termRes := p.Term(attr)
+		if termRes.tipo == ERROR {
+			return error()
+		}
 		if !((attr.tipo == FLOAT && termRes.tipo == FLOAT) || (attr.tipo == INT && termRes.tipo == INT)) {
-			if termRes.tipo != ERROR {
-				errors.SemanticalError(errors.SS_INVALID_ARIT_TYPES, fmt.Sprintf("'%s' y '%s'", attr.tipo.String(), termRes.tipo.String()))
-			}
+			errors.SemanticalError(errors.SS_INVALID_ARIT_TYPES, fmt.Sprintf("'%s' y '%s'", attr.tipo.String(), termRes.tipo.String()))
 			return error()
 		}
 
@@ -597,6 +606,9 @@ func (p *ParserExec) Term(attr Attr) Attr {
 		case token.INT_LITERAL, token.REAL_LITERAL, token.ID, token.STRING_LITERAL,
 			token.ABRIR_PAR:
 			term2 := p.Term2(attr)
+			if term2.tipo == ERROR {
+				return error()
+			}
 			if !(term2.tipo == INT || term2.tipo == FLOAT) {
 				errors.SemanticalError(errors.SS_INVALID_SIGN_TYPE, term2.tipo.String())
 				return error()
@@ -653,6 +665,7 @@ func (p *ParserExec) Term2(attr Attr) Attr {
 	case token.ID:
 		p.rule(31)
 		pos := p.lookahead.Attr.(int)
+		fmt.Println(pos)
 		attr.idPos = pos
 		p.match(token.ID, nil)
 		t := p.lookahead.Kind
@@ -666,14 +679,7 @@ func (p *ParserExec) Term2(attr Attr) Attr {
 		if res.tipo == ERROR {
 			return res
 		}
-
-		entry, ok := p.lexer.STManager.GetEntry(pos)
-		if !ok {
-			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
-			return error()
-		}
-		tipo := entry.GetType().String()
-		tt = from(tipo)
+		tt = res.tipo
 	case token.STRING_LITERAL:
 		p.rule(32)
 		p.match(token.STRING_LITERAL, nil)
@@ -689,8 +695,13 @@ func (p *ParserExec) Term2(attr Attr) Attr {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 33")
 			return error()
 		}
+
 		res := p.Expr(attr)
+		if res.tipo == ERROR {
+			return error()
+		}
 		tt = res.tipo
+		fmt.Printf("encontrao %s \n", tt.String())
 
 		if p.lookahead.Kind != token.CERRAR_PAR {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 33")
@@ -710,8 +721,11 @@ func (p *ParserExec) FactorId(attr Attr) Attr {
 	switch p.lookahead.Kind {
 	case token.ABRIR_PAR:
 		p.rule(34)
-		//TODO param list
 		p.match(token.ABRIR_PAR, nil)
+		if entry.GetType().String() != FUNCTION.String() {
+			errors.SemanticalError(errors.SS_FUNC_NOT_DECL, entry.Lexeme)
+			return error()
+		}
 		switch p.lookahead.Kind {
 		case token.ARITM, token.LOGICO, token.CERRAR_PAR, token.ID, token.INT_LITERAL,
 			token.REAL_LITERAL, token.STRING_LITERAL:
@@ -724,9 +738,7 @@ func (p *ParserExec) FactorId(attr Attr) Attr {
 			num := entry.GetAttribute("numParam").Value().(int)
 			attr.posActual = 0
 			attr.numParam = num
-			fmt.Println(num)
 			res := p.ParamList(attr)
-
 			if res.tipo == ERROR {
 				return res
 			}
@@ -891,7 +903,6 @@ func (p *ParserExec) FuncParams(attr Attr) Attr {
 		p.rule(40)
 		e, ok := p.lexer.STManager.GetGlobalEntry(attr.idPos)
 		if !ok {
-			fmt.Printf("%v\n", attr.idPos)
 			errors.SemanticalError(errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 			return error()
 		}
@@ -1043,12 +1054,12 @@ func (p *ParserExec) ParamList(attr Attr) Attr {
 			return error()
 		}
 		exp := expected.Value().(string)
+		fmt.Println(p.lookahead.Attr.(int))
 		res := p.Expr(attr)
 
 		if res.tipo == ERROR {
 			return error()
 		} else if exp != res.tipo.String() {
-			fmt.Println(res.tipo.String())
 			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, exp)
 			return error()
 		}
@@ -1260,6 +1271,9 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 		}
 
 		var res = p.Expr(attr)
+		if res.tipo == ERROR {
+			return res
+		}
 		if p.lookahead.Kind != token.PUNTOYCOMA {
 			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil) // 57")
 			return error()
@@ -1271,13 +1285,15 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 			errors.NewError(errors.SEMANTICAL, errors.SS_ID_NOT_FOUND, p.lookahead.Lexeme)
 			return error()
 		}
-
 		at := entry.GetType()
-		if res.tipo != ERROR && (at.String() == res.tipo.String()) {
+		if at.String() == res.tipo.String() {
 			attr.tipo = OK
 			return attr
 		} else {
-			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, at.String())
+			fmt.Println(res.tipo.String())
+			fmt.Println(errors.Line())
+			fmt.Println(p.lookahead.Kind.String())
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, fmt.Sprintf("%s, se obtuvo %s", at.String(), res.tipo.String()))
 			return error()
 		}
 
@@ -1308,6 +1324,7 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 		}
 		numParam := entry.GetAttribute("numParam").Value().(int)
 		retType := entry.GetAttribute("tipoRetorno").Value().(string)
+		fmt.Printf("ret: %s\n", retType)
 		attr.returnType = from(retType)
 		attr.numParam = numParam
 

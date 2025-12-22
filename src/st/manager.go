@@ -23,10 +23,28 @@ type STManager struct {
 	output     string
 }
 
+func (m *STManager) AddGlobalEntry(lexeme string) (int, bool) {
+	pos, ok := m.Global.AddEntry(lexeme)
+	return pos, ok
+}
+
 func (m *STManager) SearchEntry(lexeme string) (*Entry, bool) {
+	fmt.Printf("Search %s in %s\n", lexeme, m.Current.name)
 	a, ok := m.Current.table[lexeme]
-	if !ok && (m.Current.name != m.Global.name) {
-		a, ok = m.Global.table[lexeme]
+	if m.Current.name != m.Global.name { //si en function
+		if !ok {
+			a, ok = m.Global.table[lexeme]
+			fmt.Println("too")
+		} else {
+			fmt.Printf("prev %d\n", a.GetPos())
+			if a.pos >= 0 {
+				a.pos = -a.GetPos()
+			}
+		}
+	}
+	if ok {
+		fmt.Printf("%s pos %d\n", lexeme, a.pos)
+
 	}
 	return a, ok
 }
@@ -81,7 +99,7 @@ func (m *STManager) prepareFuncEntry(e *Entry) {
 	e.AddAtribute("numParam", a)
 	a, _ = m.Attributes["etiqFuncion"]
 	e.AddAtribute("etiqFuncion", a)
-	e.SetAttributeValue("etiqFuncion", fmt.Sprintf("etiq_%v", e.lexeme))
+	e.SetAttributeValue("etiqFuncion", fmt.Sprintf("etiq_%v", e.Lexeme))
 }
 
 func (m *STManager) SetEntryType(e *Entry, tt string) {
@@ -141,7 +159,7 @@ func (m *STManager) SetEntryAttribute(e *Entry, name string, val any) {
 		v, _ := m.Attributes[name]
 		e.AddAtribute(name, v)
 		if DEBUG {
-			fmt.Printf("DEBUG: Added attribute '%v' to entry '%v'\n\r", name, e.lexeme)
+			fmt.Printf("DEBUG: Added attribute '%v' to entry '%v'\n\r", name, e.Lexeme)
 		}
 	}
 

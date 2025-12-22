@@ -253,7 +253,12 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 	})
 	//float
 	t.addTransition(S9, F8, 0, matchNotDigit, func() (token.Token, bool) {
-		var val float64 = float64(sc.intVal) * math.Pow(10.0, float64(-sc.decimalPos))
+		var val float64
+		if sc.intVal == 0 {
+			val = 0
+		} else {
+			val = float64(sc.intVal) * math.Pow(10.0, float64(-sc.decimalPos))
+		}
 		value, ok := safeFloat32(val)
 		if !ok {
 			errors.NewError(errors.LEXICAL, errors.C_FLOAT_TOO_BIG, val)
@@ -313,7 +318,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 				tk = token.NewToken(token.ID, sc.lexeme, val)
 				if ok {
 					if DEBUG {
-						fmt.Printf("DEBUG: Inserted new ID: %s in ST\n", tk.Lexeme)
+						fmt.Printf("DEBUG: Inserted new ID: %s with pos %d in ST\n", tk.Lexeme, tk.Attr.(int))
 					}
 				} else {
 					errors.NewError(errors.SEMANTICAL, errors.SS_IDENTIFIER_DEFINED, sc.lexeme)
@@ -321,9 +326,10 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 			} else {
 				entry, ok := sc.STManager.SearchEntry(sc.lexeme)
 				if !ok {
-					val, _ := sc.STManager.AddEntry(sc.lexeme)
-					e,_:=sc.STManager.GetEntry(val)
-					sc.STManager.SetEntryType(e,"int")
+					//global int
+					val, _ := sc.STManager.AddGlobalEntry(sc.lexeme)
+					e, _ := sc.STManager.GetEntry(val)
+					sc.STManager.SetEntryType(e, "int")
 					tk = token.NewToken(token.ID, sc.lexeme, val)
 				} else {
 					tk = token.NewToken(token.ID, sc.lexeme, entry.GetPos())
@@ -444,6 +450,7 @@ func safeInt16(n int64) (int16, bool) {
 }
 
 func safeFloat32(n float64) (float32, bool) {
+	if n==0{return 0, true}
 	if n < math.SmallestNonzeroFloat32 || n > math.MaxFloat32 {
 		return 0, false
 	}

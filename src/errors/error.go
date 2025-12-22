@@ -45,12 +45,14 @@ const (
 	SS_EXPECTED_BOOLEANS
 	SS_NEGATION_EXPECTED_BOOL
 	SS_INVALID_ARIT_TYPES
+	SS_FUNC_NOT_DECL
 	SS_EXPECTED_FUNC
 	SS_RELATIONAL_TYPES
 	SS_INVALID_RETURN
 	SS_RETURN_OUTSIDE
 	SS_INVALID_SIGN_TYPE
 	SS_IF_COND
+	SS_INVALID_TYPE_NOT_FUNC
 )
 
 type Error struct {
@@ -156,6 +158,10 @@ func (c ErrorCode) string(val any) string {
 		str = "Expresion de retorno fuera de funcion"
 	case SS_INVALID_RETURN:
 		str = fmt.Sprintf("Tipo de retorno invalido, %s", val)
+	case SS_INVALID_TYPE_NOT_FUNC:
+		str = fmt.Sprintf("no se puede invocar una funcion sobre el tipo %s", val)
+	case SS_FUNC_NOT_DECL:
+		str = fmt.Sprintf("Se está intentando llamar a la función '%s', pero dicha función no está declarada", val)
 	case SS_EXPECTED_FUNC:
 		str = fmt.Sprintf("Se esperaba una funcion, se obtuvo '%s'", val)
 	case SS_IF_COND:

@@ -59,7 +59,7 @@ func (l EntryType) String() string {
 
 type Entry struct {
 	id         int                   //id of Entry
-	lexeme     string                //lexeme
+	Lexeme     string                //lexeme
 	entry_type EntryType             //lexeme kind
 	Attributes map[string]*Attribute //attribute list
 	pos        int
@@ -76,7 +76,7 @@ func (e *Entry) GetPos() int {
 func NewEntry(lex string) *Entry {
 	return &Entry{
 		Attributes: map[string]*Attribute{},
-		lexeme:     lex,
+		Lexeme:     lex,
 		entry_type: NO_TYPE,
 	}
 
@@ -93,7 +93,7 @@ func (e *Entry) GetType() EntryType {
 func (e *Entry) setType(t EntryType, offset int) error {
 	switch t {
 	case FUNCTION:
-		e.entry_type=FUNCTION
+		e.entry_type = FUNCTION
 		return nil
 	case INT:
 	case STRING:
@@ -117,7 +117,7 @@ func (e *Entry) setType(t EntryType, offset int) error {
 // PDL specified format
 func (e *Entry) Write() string {
 	a := ""
-	a += fmt.Sprintf("* LEXEMA: '%v'\r\n", e.lexeme)
+	a += fmt.Sprintf("* LEXEMA: '%v'\r\n", e.Lexeme)
 	a += fmt.Sprintln("  Atributos:")
 	a += "    + Tipo: "
 	if e.entry_type == NO_TYPE {
@@ -185,7 +185,7 @@ func (e *Entry) SetAttributeValue(name string, value any) {
 // Returns error if the attribute is already present
 func (e *Entry) AddAtribute(name string, a Attribute) error {
 	if e.containsAttr(name) {
-		return fmt.Errorf("Error: Attribute '%v' already exists for the entry [%v]", name, e.lexeme)
+		return fmt.Errorf("Error: Attribute '%v' already exists for the entry [%v]", name, e.Lexeme)
 	}
 	e.Attributes[name] = &a
 	return nil

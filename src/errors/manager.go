@@ -19,7 +19,9 @@ func NewErrorManager() {
 	}
 	manager = ErrorManager{currentLine: 1, errors: []Error{}}
 }
-
+func Line()int{
+	return manager.currentLine
+}
 // Create new Error.
 func NewError(kind ErrorKind, code ErrorCode, val any) {
 	manager.errors = append(manager.errors, newError(kind, code, manager.currentLine, val))
