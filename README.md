@@ -8,7 +8,8 @@ El proyecto esta divido en varios modulos:
 - Analizador Lexico
 - Analizador Sintactico
 - Analizador Semantico
-- ...
+- Tabla de Simbolos
+- ...(el backend se implementa en la asignatura TDL)
 
 En cada modulo se explicaran todos los detalles y especificaciones necesarias para cada parte.
 
@@ -18,6 +19,45 @@ necesita un lenguaje para poder programar y ejecutarlo en una maquina.
 
 
 ## Analizador Lexico
+Para el analizador lexico se han definido los tokens que pertenecen al lenguaje, asi como sus limitaciones.
+
+### Gramática regular
+Definimos el analizador lexico mediante una gramatica regular:
+
+Sean: 
+- c cualquier carácter
+- d cualquier dígito
+- c1 cualquier carácter menos *
+- c2 cualquier carácter menos / y *
+- l cualquier letra
+- c3 cualquier carácter menos =
+- c4 cualquier carácter menos un dígito o punto(’.’)
+- c5 cualquier carácter menos dígito.
+
+
+```
+-> S
+S -> delS | =X | *M | !N | dD | lA | _A | 'W | /C | { | } | ( | ) | ; | + | - | &O | ,
+D -> dD | .D'| λ  
+D' -> dD'’
+D'’ -> dD'’ | λ 
+A -> dA | lA | _A | λ 
+W -> cW | '    
+C -> *C'
+C'->  c1 C’ | * C'' 
+C'' -> / | c2 C' | * C’’
+X -> = | λ
+N -> = | λ
+M -> =
+O -> &
+```
+
+### Autómata Finito determinista
+A continuacion se define el Autómata Finito determinista correspondiente a la gramatica regular anteriormente descrita.
+
+Sea Sx los estados intermedios, Fx estados finales y S0 el estado inicial:
+![Imagen](https://github.com/strozz1/compiler-pdl/blob/master/dfa.png)
+
 ## Analizador Sintantico
 Para el analizador sintactico se disponen distintas tecnicas de parsear lo que nos devuelve el Lexico.
 
@@ -176,3 +216,30 @@ Analizando la tabla, podemos observar que las producciones que tienen $\lambda$ 
 Podemos concluir que la gramática es adecuada para LL(1) RD.
 
 ## Analizador Semantico
+El analizador semántico comprueba la corrección semántica sobre el árbol sintáctico.
+
+Es necesaria una gramática especial: **gramática de atributos**.
+
+A medida que se analiza sintácticamente, se va añadiendo información semántica para comprobar si todo es correcto.
+  
+Para el analizador semántico, usaremos un tipo de analisis llamado Traduccion dirigida por la sintaxis(**Syntax-Directed Translation**)
+
+-- TODO DOCS
+## Tabla de Símbolos 
+Hemos usado un hashmap para el diseño de la tabla, la cual está compuesta por
+- un id
+- nombre de tabla
+- padre
+- hijo
+- una lista de entradas(hashmap).
+
+La tabla global no tendrá padre pero y las funciones serán hijas del padre. De esta manera podemos tener siempre a disposición ambas tablas. Este diseño es flexible si el lenguaje permitiese el anidamiento de funciones.
+
+Una entrada está compuesta por 
+posición
+lexema
+tipo(función, entero, cadena, real, lógico)
+una lista de atributos. 
+Los atributos son gestionados por el analizador semántico. El léxico solo introduce el lexema y el tipo.
+
+
