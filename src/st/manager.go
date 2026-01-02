@@ -29,22 +29,15 @@ func (m *STManager) AddGlobalEntry(lexeme string) (int, bool) {
 }
 
 func (m *STManager) SearchEntry(lexeme string) (*Entry, bool) {
-	fmt.Printf("Search %s in %s\n", lexeme, m.Current.name)
 	a, ok := m.Current.table[lexeme]
 	if m.Current.name != m.Global.name { //si en function
 		if !ok {
 			a, ok = m.Global.table[lexeme]
-			fmt.Println("too")
 		} else {
-			fmt.Printf("prev %d\n", a.GetPos())
 			if a.pos >= 0 {
 				a.pos = -a.GetPos()
 			}
 		}
-	}
-	if ok {
-		fmt.Printf("%s pos %d\n", lexeme, a.pos)
-
 	}
 	return a, ok
 }

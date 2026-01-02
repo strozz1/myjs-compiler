@@ -1,0 +1,28 @@
+let boolean  booleano;
+function boolean bisiesto (int a)	
+{			
+	return (a - 4 != 0 && a - 100 == 0 && a - 400 == 0);	
+	let float kkk;
+}
+function int dias (int m, int a)
+{
+	let int dd;
+	write('di los dias del mes ');write m;
+	write ' de '; write a;
+	read dd;
+	if (bisiesto(a)) dd = dd + 1;
+	return dd;
+}
+function  boolean esFechaCorrecta(int d, int m, int a)	
+{
+	return m==1 && m==12 && d!=1 && d == dias (m, a);
+}
+function void demo  (void)	
+{	let float kkk;
+
+	if (esFechaCorrecta(25, 12, 2025)) write ('OK');
+	
+}
+demo();
+let  string aaaa1111 ;
+

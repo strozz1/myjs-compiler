@@ -333,6 +333,9 @@ func (p *ParserExec) WhileBody(attr Attr) Attr {
 		return error()
 	}
 	condAttr := p.Expr(attr)
+	if(condAttr.tipo==ERROR){
+		return condAttr;
+	}
 	if p.lookahead.Kind != token.CERRAR_PAR {
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 10")
 		return error()
@@ -615,6 +618,7 @@ func (p *ParserExec) Term(attr Attr) Attr {
 			}
 			return term2
 		default:
+			
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 23/24")
 			return error()
 		}
@@ -665,7 +669,6 @@ func (p *ParserExec) Term2(attr Attr) Attr {
 	case token.ID:
 		p.rule(31)
 		pos := p.lookahead.Attr.(int)
-		fmt.Println(pos)
 		attr.idPos = pos
 		p.match(token.ID, nil)
 		t := p.lookahead.Kind
@@ -701,7 +704,6 @@ func (p *ParserExec) Term2(attr Attr) Attr {
 			return error()
 		}
 		tt = res.tipo
-		fmt.Printf("encontrao %s \n", tt.String())
 
 		if p.lookahead.Kind != token.CERRAR_PAR {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 33")
@@ -1054,7 +1056,6 @@ func (p *ParserExec) ParamList(attr Attr) Attr {
 			return error()
 		}
 		exp := expected.Value().(string)
-		fmt.Println(p.lookahead.Attr.(int))
 		res := p.Expr(attr)
 
 		if res.tipo == ERROR {
@@ -1100,7 +1101,8 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 			return error()
 		}
 
-		if attr.posActual+1 >= attr.numParam {
+		if attr.posActual+1 > attr.numParam {
+			fmt.Printf("%d vs %d\n",attr.posActual+1, attr.numParam)
 			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf(" Se esperaban %d parametros", attr.numParam))
 			return error()
 		}
@@ -1225,7 +1227,7 @@ func (p *ParserExec) Sent(attr Attr) Attr {
 		t := p.lookahead.Kind
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.STRING_LITERAL || t == token.REAL_LITERAL ||
-			t == token.ID || t == token.CERRAR_PAR || t == token.PUNTOYCOMA) {
+			t == token.ID || t == token.ABRIR_PAR || t == token.PUNTOYCOMA) {
 			errors.SintacticalError(errors.S_EXPECTED_RET_EXP, nil) // 55")
 			return error()
 		}
@@ -1324,7 +1326,6 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 		}
 		numParam := entry.GetAttribute("numParam").Value().(int)
 		retType := entry.GetAttribute("tipoRetorno").Value().(string)
-		fmt.Printf("ret: %s\n", retType)
 		attr.returnType = from(retType)
 		attr.numParam = numParam
 
