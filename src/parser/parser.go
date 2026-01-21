@@ -35,7 +35,9 @@ func NewParser(lexer *lexer.Lexer) Parser {
 }
 func (p *Parser) Parse() bool {
 	r := p.parserExec.P(Attr{})
-	p.parserExec.lexer.STManager.DestroyScope()
+	if(p.parserExec.lexer!=nil){
+		p.parserExec.lexer.STManager.DestroyScope()
+	}
 	return (r.tipo == OK)
 }
 
@@ -245,6 +247,9 @@ func (p *ParserExec) Decl(attr Attr) Attr {
 			return error()
 		}
 		if p.lookahead.Kind != token.ID {
+			if(p.lookahead.Kind==token.DO){
+				errors.SemanticalError(errors.C_RES_AS_ID,nil);
+			}
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 5")
 			return error()
 		}
@@ -369,6 +374,7 @@ func (p *ParserExec) WhileBody(attr Attr) Attr {
 
 // Expr -> ExpRel {if(ExpRel!=error)Expr2.tipo:=ExpRel.tipo else Expr.error} Expr2 {Expr.tipo=Expr2.tipo}
 func (p *ParserExec) Expr(attr Attr) Attr {
+
 	p.rule(11)
 	t := p.lookahead.Kind
 	if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
@@ -739,7 +745,7 @@ func (p *ParserExec) FactorId(attr Attr) Attr {
 			return error()
 		}
 		switch p.lookahead.Kind {
-		case token.ARITM, token.LOGICO, token.CERRAR_PAR, token.ID, token.INT_LITERAL,
+		case token.ARITM, token.LOGICO, token.CERRAR_PAR,token.ABRIR_PAR, token.ID, token.INT_LITERAL,
 			token.REAL_LITERAL, token.STRING_LITERAL:
 			if p.lookahead.Kind == token.LOGICO {
 				if p.lookahead.Attr != token.LOG_NEG {
@@ -798,6 +804,10 @@ func (p *ParserExec) DecFunc(attr Attr) Attr {
 	}
 	tipo := p.TipoFunc()
 	if tipo.tipo == ERROR {
+		return error()
+	}
+	if(p.lookahead.Kind ==token.READ || p.lookahead.Kind==token.WRITE){
+		errors.SintacticalError(errors.S_RESERVED, nil) // 36")
 		return error()
 	}
 	if p.lookahead.Kind != token.ID {
@@ -1107,6 +1117,7 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
+
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 51")
 			return error()
 		}
@@ -1151,6 +1162,7 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 			return error()
 		}
 	default:
+
 		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 52")
 		return error()
 	}
@@ -1191,6 +1203,11 @@ func (p *ParserExec) Sent(attr Attr) Attr {
 			return error()
 		}
 		exp := p.Expr(attr)
+		if(exp.tipo.String()=="boolean"){
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE,"string o entero, se obtuvo boolean")
+			return error()
+		}
+
 		if p.lookahead.Kind != token.PUNTOYCOMA {
 			errors.SintacticalError(errors.S_EXPECTED_SEMICOLON, nil)
 			return error()
@@ -1209,7 +1226,7 @@ func (p *ParserExec) Sent(attr Attr) Attr {
 			return error()
 		}
 		if p.lookahead.Kind != token.ID {
-			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 55")
+			errors.SintacticalError(errors.S_EXPECTED_ID, nil) // 55")
 			return error()
 		}
 		i, _ := p.lookahead.Attr.(int)
@@ -1218,6 +1235,15 @@ func (p *ParserExec) Sent(attr Attr) Attr {
 			return error()
 		}
 		//TODO: tipo de lectura?
+		e,ok:= p.lexer.STManager.GetEntry(i)
+		if(!ok){
+			errors.SintacticalError(errors.SS_ID_NOT_FOUND,"id no valido")
+			return error()
+		}
+		if(e.GetType().String()=="boolean"){
+			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE,"string o entero, se obtuvo boolean")
+			return error()
+		}
 		p.match(token.ID, nil)
 		if !p.match(token.PUNTOYCOMA, nil) {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 55")
@@ -1274,6 +1300,7 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 		}
 
 		t := p.lookahead.Kind
+
 		if !(t == token.ARITM || (t == token.LOGICO && p.lookahead.Attr == token.LOG_NEG) ||
 			t == token.INT_LITERAL || t == token.REAL_LITERAL || t == token.ID ||
 			t == token.STRING_LITERAL || t == token.ABRIR_PAR) {
@@ -1309,7 +1336,7 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 		p.match(token.ABRIR_PAR, nil)
 		p.rule(59)
 		switch p.lookahead.Kind {
-		case token.ARITM, token.LOGICO, token.CERRAR_PAR, token.ID, token.INT_LITERAL,
+		case token.ARITM, token.LOGICO, token.CERRAR_PAR,token.ABRIR_PAR, token.ID, token.INT_LITERAL,
 			token.REAL_LITERAL, token.STRING_LITERAL:
 			if p.lookahead.Kind == token.LOGICO {
 				if p.lookahead.Attr != token.LOG_NEG {
@@ -1335,11 +1362,13 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 		attr.returnType = from(retType)
 		attr.numParam = numParam
 
+		
 		var res = p.ParamList(attr)
 		if res.tipo == ERROR {
 			return res
 		}
 		if p.lookahead.Kind != token.CERRAR_PAR {
+
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 59")
 			return error()
 		}

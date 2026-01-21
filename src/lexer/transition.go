@@ -359,7 +359,7 @@ func GenerateTransitions(sc *Lexer) TransitionTable {
 		sc.nextChar()
 		return token.Token{}, false
 	})
-	t.addTransition(S12, S11, 0, matchNotDash, func() (token.Token, bool) {
+	t.addTransition(S12, S11, 0, matchNotDashNotStar, func() (token.Token, bool) {
 		if sc.currentChar == '\n' {
 			sc.newLine()
 		}
@@ -451,7 +451,7 @@ func safeInt16(n int64) (int16, bool) {
 
 func safeFloat32(n float64) (float32, bool) {
 	if n==0{return 0, true}
-	if n < math.SmallestNonzeroFloat32 || n > math.MaxFloat32 {
+	if n < math.SmallestNonzeroFloat32 || n > 117549436.0 {
 		return 0, false
 	}
 	return float32(n), true
@@ -459,6 +459,9 @@ func safeFloat32(n float64) (float32, bool) {
 
 var matchNotDash = func(c rune) bool {
 	return c != '/'
+}
+var matchNotDashNotStar = func(c rune) bool {
+	return c != '/' && c!='*'
 }
 var matchNotStar = func(c rune) bool {
 	return c != '*'

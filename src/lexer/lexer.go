@@ -139,6 +139,7 @@ func (s *Lexer) Lexical() (token.Token, bool) {
 					continue
 				}
 			}
+			
 			errors.NewError(errors.LEXICAL, errors.C_INVALID_CHAR, s.currentChar)
 			s.reset()
 			s.nextChar()

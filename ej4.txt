@@ -1,0 +1,58 @@
+//** No se debe cambiar el ejemplo hasta que lo indique el profesor **/
+let string  s ;let int a ;
+let  boolean bb ; 
+let float ff;
+
+
+function void read (string s, int RR)	
+{
+	let boolean s_s;
+	write pp;
+	write"++++Helloooooooooooooooooooooooooooooooooooooooooooooooooooooooo!!";
+	RR= (888.888888);
+		write(s)
+	;if (bb) return kk;
+	write RR;		write (4 + (a + 987)) +33);
+}	
+
+kk=33;
+ff=117549456.0;	/*error real*/
+
+function int  RR (int put, boolean b_)
+{
+	read(kk);
+	let boolean log;
+	a= 32100 + put + b_  	;	
+	if (_b_ && log)	return 654;
+	return put + RR (put + 1, bb);	
+}
+
+let string s_s;
+
+RR = a;
+
+function  stringcadena (void)
+{
+	let string kk;
+	if ((a != 91) || bb) 
+	{rea ('{$}', RR(a, bb));
+	let string do;
+	do= s_s;
+	if (bb) if (bb) 
+		return do;
+	}
+		s = ";
+		return s;
+	do= s_s;
+
+
+
+
+a= RR (5, bb, kk);
+write rea (kk, a);
+return s;
+let boolean kk ;
+
+s_s=cadena();
+
+a= 000091. < 8 + a;

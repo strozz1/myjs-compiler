@@ -22,9 +22,11 @@ const (
 	C_MALFORMED_FLOAT
 	C_MALFORMED_STRING
 	C_MALFORMED_ID
-
+	C_RES_AS_ID
 	S_INVALID_EXP
 	S_EXPECTED_EXP
+	S_EXPECTED_ID
+	S_RESERVED
 	S_EXPECTED_WHILE_CORCH
 	S_EXPECTED_SENT
 	S_EXPECTED_CERRAR_CORCH
@@ -33,6 +35,7 @@ const (
 	S_EXPECTED_CERRAR_PAR
 	S_EXPECTED_FUNCTYPE
 	S_EXPECTED_SEMICOLON
+S_DEFINITION_IN_DECL
 	S_EXPECTED_RET_EXP
 	S_EXPECTED_EXP_LOG
 	S_TYPE
@@ -95,6 +98,8 @@ func (c ErrorCode) string(val any) string {
 		str = fmt.Sprintf("Caracter invalido: '%c'", val)
 	case C_INT_TOO_BIG:
 		str = fmt.Sprintf("Valor entero '%d' supera el limite.", val)
+	case C_RES_AS_ID:
+		str="No puedes usar una palabra reservada como nombre de variable"
 	case C_FLOAT_TOO_BIG:
 		str = fmt.Sprintf("Valor real '%f' supera el limite.", val)
 	case C_MALFORMED_NUMBER:
@@ -110,10 +115,12 @@ func (c ErrorCode) string(val any) string {
 		//SINTACTICAL
 	case S_INVALID_EXP:
 		str = "La expresion no es valida"
+	case S_EXPECTED_ID:
+		str = "Se esperaba una variable"
 	case S_TYPE:
 		str = "Se espera un Tipo"
 	case S_EXPECTED_EXP:
-		str = "Se esperaba expresion"
+		str = "Se esperaba una expresion valida"
 	case S_EXPECTED_WHILE_CORCH:
 		str = "Se espera { antes del cuerpo del while"
 	case S_EXPECTED_SENT:
@@ -126,8 +133,12 @@ func (c ErrorCode) string(val any) string {
 		str = "Se esperaba cierre de parentesis ')'"
 	case S_EXPECTED_ABRIR_PAR:
 		str = "Se esperaba apertura de parentesis '('"
+	case S_RESERVED:
+		str = "No se puede usar una palabra reservada como nombre de variable/funcion"
 	case S_EXPECTED_SEMICOLON:
-		str = "Falta ';' al final de la expresion"
+		str = "Se esperaba un punto y coma a continuacion."
+	case S_DEFINITION_IN_DECL:
+		str = "no se puede definir al declarar una variable"
 	case S_EXPECTED_FUNCTYPE:
 		str = "La funcion no tiene definida el tipo de retorno"
 	case S_EXPECTED_RET_EXP:

@@ -1,26 +1,90 @@
 Global Table #1:
-* LEXEMA: 'c'
+* LEXEMA: 's'
   Atributos:
-    + Tipo: 'boolean'
-    + despl: 7
+    + Tipo: 'string'
+    + despl: 0
 * LEXEMA: 'a'
   Atributos:
     + Tipo: 'int'
-    + despl: 0
-* LEXEMA: 'b'
+    + despl: 64
+* LEXEMA: 'ff'
+  Atributos:
+    + Tipo: 'float'
+    + despl: 66
+* LEXEMA: 'reada'
+  Atributos:
+    + Tipo: 'function'
+    + tipoParam2: 'int'
+    + tipoRetorno: 'void'
+    + numParam: 2
+    + etiqFuncion: 'etiq_reada'
+    + tipoParam1: 'string'
+* LEXEMA: 'pp'
   Atributos:
     + Tipo: 'int'
+    + despl: 66
+* LEXEMA: 'kk'
+  Atributos:
+    + Tipo: 'int'
+    + despl: 67
+* LEXEMA: 'RR'
+  Atributos:
+    + Tipo: 'function'
+    + etiqFuncion: 'etiq_RR'
+    + tipoParam1: 'int'
+    + tipoParam2: 'boolean'
+    + tipoRetorno: 'int'
+    + numParam: 2
+* LEXEMA: 'bb'
+  Atributos:
+    + Tipo: 'boolean'
+    + despl: 65
+* LEXEMA: 's_s'
+  Atributos:
+    + Tipo: 'string'
+    + despl: 68
+* LEXEMA: 'cadena'
+  Atributos:
+    + Tipo: 'function'
+    + tipoRetorno: 'string'
+    + numParam: 0
+    + etiqFuncion: 'etiq_cadena'
+------------------------------------------
+Function cadena #4:
+* LEXEMA: 'doo'
+  Atributos:
+    + Tipo: 'string'
+    + despl: 64
+* LEXEMA: 'kk'
+  Atributos:
+    + Tipo: 'string'
+    + despl: 0
+------------------------------------------
+Function RR #3:
+* LEXEMA: 'put'
+  Atributos:
+    + Tipo: 'int'
+    + despl: 0
+* LEXEMA: 'b_'
+  Atributos:
+    + Tipo: 'boolean'
     + despl: 1
-* LEXEMA: 'bbb'
+* LEXEMA: 'log'
   Atributos:
     + Tipo: 'boolean'
     + despl: 2
-* LEXEMA: 'rrr'
+------------------------------------------
+Function reada #2:
+* LEXEMA: 's'
   Atributos:
-    + Tipo: 'float'
-    + despl: 3
-* LEXEMA: 'ccc'
+    + Tipo: 'string'
+    + despl: 0
+* LEXEMA: 'RR'
   Atributos:
-    + Tipo: 'float'
-    + despl: 5
+    + Tipo: 'int'
+    + despl: 64
+* LEXEMA: 's_s'
+  Atributos:
+    + Tipo: 'boolean'
+    + despl: 65
 ------------------------------------------

@@ -191,8 +191,11 @@ func (m *STManager) DestroyScope() {
 	if DEBUG {
 		fmt.Printf("DEBUG: Scope '%v' destroyed\n", m.Current.name)
 	}
-	m.output = m.Current.Write() + m.output
-	m.Current = m.Current.parent
+	if(m.Current!=nil){
+		m.output = m.Current.Write() + m.output
+		m.Current = m.Current.parent
+
+	}
 }
 
 // Returns if the attribute name already exists in the attribute list

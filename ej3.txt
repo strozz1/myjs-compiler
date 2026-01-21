@@ -1,0 +1,93 @@
+//No se debe cambiar el ejemplo hasta que lo indique el profesor **/
+let string   s;
+let int   a ;
+let boolean   bb ;
+let float ff;
+
+function void write (string s, int RR, void)	
+{
+	write bb;
+	write"hello;
+	write(RR);	read (ff);
+	if (bb)
+		return ;	
+		write 4.0 +( ff +( 8.888888888 + 888888888.8)));		/*error real*/
+}
+
+function int  RR (int n, boolean _b)
+{
+	let boolean  log ;
+	log= n < a < 8.8 ;
+	read kk;
+	if (_b && log)	return _b;
+	return RR (n * 1, bb);	
+}
+
+let string s_s;
+
+function cadena string (void)
+{
+	let boolean  kk;
+	if (kk) return "";
+	else  
+	=0;    
+	switch (a)
+	{
+	   case 000000: writ ("'[*]'", RR(9876, bb)); break;
+	   case 00002: 
+	   case 0003: let string xx ;
+		if (kk) 			   break;	 
+		xx=s;  
+	   case 004: return(xx);
+	   case 05: write("PdL"); break;
+	   case 6: kk= (a < 9.) || bb;
+	}
+
+	xx=s_s;
+
+	RR = 8;
+	
+	
+	
+	let  int kk;
+	write "++++Helloooooooooooooooooooooooooooooooooooooooooooooooooooooooooo";
+	a= RR (5, kk, kk);
+	write cadena();
+	kk= writ (s_s, bb);
+	return s; 
+	
+	a= 9 < 000008 + a;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+																								#

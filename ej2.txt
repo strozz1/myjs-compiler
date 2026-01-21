@@ -1,0 +1,58 @@
+/** No se debe cambiar el ejemplo hasta que lo indique el profesor **/
+let int  a;
+let boolean bb ;
+
+a= 
+9 > a + 333.
+;
+
+let s       string s;let float ff;
+
+function void read  (string s, float put)	
+{
+	write[s];
+	let boolean    ss;
+	write"bye;
+	write ff -4.4;
+	write put;
+	read kk;
+	if (bb)return kk;
+	write ((091 + (8 +3)+(a)+kk);
+}
+
+let string  ss;
+
+function float RR  (float case, boolean _0)	
+{
+	let float kk ;
+	let	boolean	log;
+	log= case < a ;
+	read _0;
+	if (_0 && log)	return 117549436.78;	// error real
+	return case - RR (case - kk, bb);	
+}
+
+RR = ff;
+
+ss = ("++++++Helloooooooooooooooooooooooooooooooooooooooooooooooooooooooooo");
+
+let  int ss;
+
+function string  cadena (void del)
+{
+	if (bb) 
+	while (a > 91 || bb) 
+	{rea ('"{9}"', RR(0.0, bb));
+		let	string			kk;
+		kk=ss;
+		if(bb) return bb;
+	}
+	else      
+		=87;return "";
+
+	//llave */
+
+	ff= RR ((ff), bb, kk);
+	kk = rea (kk,0000.99);
+	return cadena();
+
