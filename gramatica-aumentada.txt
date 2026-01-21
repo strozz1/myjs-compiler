@@ -5,23 +5,23 @@ Terminales = { ; = { } ( ) return read id write ,  function int float boolean vo
 Axioma = P
 
 Producciones = {
-P -> Decl P { if(Decl.tipo==OK && P.tipo==OK) $0.tipo:=OK else $0.tipo:=error }
-P -> DecFunc P { if(DeclFunc.tipo==OK && P.tipo==OK) $0.tipo:=OK else $0.tipo:=error }
+P -> Decl P {if(Decl.tipo==OK && P.tipo==OK) $P0.tipo:=OK else $P0.tipo:=error}
+P -> DecFunc P {if(DeclFunc.tipo==OK && P.tipo==OK) $0.retTipo:=DecFunc.retTipo; $P0.tipo:=OK else $P0.tipo:=error}
 P -> lambda {P.tipo:=OK }
 
 Decl -> if ( Expr ) Sent    { if(Expr.tipo==bool && Sent.tipo==OK) Decl.tipo:=OK else error() Decl.tipo:=error }
 Decl -> let {zonaDecl:=True} TipoDecl id ;   { insertarTipoTS(id.pos, TipoDecl.tipo); Decl.tipo:=OK zonaDecl:=False}
-Decl -> do WhileBody    { if(WhileBody.tipo==OK) Decl.tipo:=OK else Decl.tipo:=error }
-Decl -> Sent    { if(Sent.tipo==OK) Decl.tipo:=OK else Decl.tipo:=error }
+Decl -> do {WhileBody.InFunc:=Decl.InFunc WhileBody.retTipo:=Decl.retTipo} WhileBody {if(WhileBody.tipo==OK) Decl.tipo:=OK else Decl.tipo:=error}
+Decl -> {Sent.InFunc:=Decl.InFunc Sent.retTipo:=Decl.retTipo} Sent {if(Sent.tipo==OK) Decl.tipo:=OK else Decl.tipo:=error}
 
-TipoDecl -> Tipo    {TipoDecl:=Tipo.tipo}
-TipoDecl -> lambda  {TipoDecl:=int}
+TipoDecl -> Tipo    {TipoDecl.tipo:=Tipo.tipo}
+TipoDecl -> lambda  {TipoDecl.tipo:=int}
 
-WhileBody -> { FuncBody } while ( Expr ) ;  {if(FuncBody.tipo==OK && Expr.tipo==bool) WhileBody.tipo:=OK else error() WhileBody.tipo:=error }
+WhileBody -> { {FuncBody.InFunc:=WhileBody.InFunc FuncBody.retTipo:=WhileBody.retTipo} FuncBody } while ( Expr ) ;  {if(FuncBody.tipo==OK && Expr.tipo==bool) WhileBody.tipo:=OK else error() WhileBody.tipo:=error }
 
 Expr -> ExpRel {if(ExpRel!=error)Expr2.tipo:=ExpRel.tipo else Expr.error} Expr2 {Expr.tipo=Expr2.tipo}
 
-Expr2 ->  && ExpRel {if(ExpRel.tipo==error) error();$.tipo:=error elseif(ExpRel.tipo==bool && $.tipo==bool) Expr2.tipo:=bool else error() $.tipo:=error} Expr2   {$.tipo:=Expr2.tipo}
+Expr2 -> {if($0.tipo!=bool) error() Expr2.tipo:=error} && ExpRel {if(ExpRel.tipo==error) error();$.tipo:=error elseif(ExpRel.tipo==bool) Expr2.tipo:=bool else error() $.tipo:=error} Expr2   {$.tipo:=Expr2.tipo}
 Expr2 -> lambda {Expr2.tipo:=OK}  
 
 ExpRel -> AritExp {if(AritExp.tipo==ERROR) ExpRel.tipo:=error; else ExpRel2.tipo:=AritExp.tipo} ExpRel2  {ExpRel.tipo:=ExpRel2.tipo} 
@@ -34,9 +34,8 @@ AritExp -> Term {if(Term.tipo!=error) AritExp2.tipo:= Term.tipo} AritExp2 {AritE
 
 AritExp2 -> + Term {if(($0.tipo==int && Term.tipo==int) || ($0.tipo==float && Term.tipo==float)) AritExp2.tipo:=Term.tipo else error() $0.tipo:=error} AritExp2 {$0.tipo:=AritExp2.tipo}      
 AritExp2 -> - Term AritExp2 {if(($0.tipo==int && Term.tipo==int) || ($0.tipo==float && Term.tipo==float)) AritExp2.tipo:=Term.tipo else error() $0.tipo:=error} AritExp2 {$0.tipo:=AritExp2.tipo}      
-AritExp2 -> lambda {$0.tipo:=$0.tipo}             
+AritExp2 -> lambda {$AritExp2.tipo:=$AritExp2.tipo}             
 
-// aqui revisar poirque creo que no hace falta hacer if $0.tipo, ya que si se llama, o esta revisao o no tiene directamente.
 Term -> ! Term3     {if(Term3.tipo==bool) Term.tipo:=bool; elseif(Term3.tipo!=error) error(); Term.tipo:=error}                
 Term -> + Term2     {if(Term2.tipo==float)Term.tipo:=float; elseif(Term2.tipo==int) Term.tipo:=entero else error() Term.tipo:=error}           
 Term -> - Term2     {if(Term2.tipo==float)Term.tipo:=float; elseif(Term2.tipo==int) Term.tipo:=entero else error() Term.tipo:=error}              
@@ -55,15 +54,15 @@ Term2 -> ( Expr )       {Term2.tipo:=Expr.tipo}
 FactorId -> ( {if(ObtenerTipoTS(FactorId.idPos)!=function) error(); FactorId.tipo:=error else } ParamList )       
 FactorId -> lambda {tip:=ObtenerTipoTS($0.idPos); FactorId.tipo:=tip}     
 
-DecFunc -> {zonaDecl:=True} function TipoFunc {FuncBody.retTipo:=TipoFunc.tipo} id {InsertarTipo(id.pos,TipoFunc.tipo);InsertarAttr("etiqFunc",id.lexema) NewScope(etiqFunc)} ( FuncParams ) { FuncBody } {zonaDecl:=False}
+DecFunc -> {zonaDecl:=True} function TipoFunc {FuncBody.retTipo:=TipoFunc.tipo} id {InsertarTipo(id.pos,TipoFunc.tipo);InsertarAttr("etiqFunc",id.lexema) NewScope(etiqFunc)} ( {FuncParams.idPos:=id.pos)} FuncParams ) { FuncBody } {zonaDecl:=False; DestroyTS()}
 
 TipoFunc -> Tipo    {TipoFunc.tipo:=Tipo.tipo}        
 TipoFunc -> void    {TipoFunc.tipo:=void}   
 
-FuncParams -> Tipo id FuncParams2       
-FuncParams -> void              
+FuncParams -> Tipo id {InsertarParam(FuncParams.idPos,Tipo.tipo,0) FuncParams2.paramPos:=1} FuncParams2       
+FuncParams -> void {FuncParams.tipo:=OK}            
 
-FuncParams2 -> , Tipo id FuncParams2        
+FuncParams2 -> , Tipo id {InsertarParam(FuncParams.idPos,Tipo.tipo,FuncParams2.paramPos) FuncParams2.paramPos+=1} FuncParams2        
 FuncParams2 -> lambda               
 
 Tipo -> int     {Tipo.tipo:=int}             
@@ -71,25 +70,26 @@ Tipo -> float   {Tipo.tipo:=float}
 Tipo -> boolean {Tipo.tipo:=boolean}
 Tipo -> string  {Tipo.tipo:=string}
 
-FuncBody -> Decl {FuncBody.retTipo:=$0.retTipo} FuncBody   {if(Decl.tipo==FuncBody.tipo==OK) $0.tipo:=OK else $0.tipo:=error}   //maybe cambiar y poner ret en una separada    
-FuncBody -> return ReturnExp ; {}
+FuncBody -> {Decl.InFunc:=FuncBody.InFunc Decl.retTipo:=FuncBody.retTipo} Decl {FuncBody.retTipo:=$0.retTipo} FuncBody   {if(Decl.tipo==FuncBody.tipo==OK) $0.tipo:=OK else $0.tipo:=error}   
+FuncBody -> return ReturnExp ; {if(!FuncBody.InFunc) error("return fuera de funcion"); FuncBody.tipo:=error; else if(FuncBody.retTipo!=ReturnExp.tipo) error("tipo de ret incorrecto") FuncBody.tipo:=error; else FuncBody.tipo:=OK}
 FuncBody -> lambda          {FuncBody.tipo:=OK}             
 
 ParamList -> {if(ParamList.numParam<=ParamList.posActual) error() ParamList.tipo:=error} Expr { t:=ParamList.tipoParams[ParamList.posActual]; if(t!=Expr.tipo) error() ParamList.error else ParamList2.posActual++} ParamList2 {ParamList.tipo:=ParamList2.tipo}
 ParamList ->  lambda  {if(ParamList.posActual<ParamList.numParam) error() ParamList.tipo:=error else ParamList.tipo:=OK}
 
-ParamList2 -> , Expr ParamList2         
-ParamList2 -> lambda                
+ParamList2 -> {if(ParamList2.numParam<=ParamList2.posActual) error() ParamList2.tipo:=error} , Expr {t:=ParamList2.tipoParams[ParamList2.posActual]; if(t!=Expr.tipo) error()} ParamList2 {ParamList2.tipo:=ParamList2.tipo}        
+ParamList2 -> lambda   {if(ParamList2.posActual<ParamList2.numParam) error() ParamList2.tipo:=error else ParamList2.tipo:=OK}
+             
 
-Sent -> id {if(!ExisteTS(id.pos) error();Sent.tipo:=error; else Sent2.idPos:=id.pos} Sent2    { Sent.tipo:=Sent2.tipo}
-Sent -> write Expr ;    { if(Expr.tipo!=error) Sent.tipo := OK else error}
-Sent -> read id ;   { if(id.existe) Sent.tipo := OK else error() }               //REVISITAR ya que puede ser declaracion implicita
-Sent -> {if!(Sent.funcBody) error() Sent2.tipo:=error} return ReturnExp ;  { if(Sent.returnTipo==ReturnExp.tipo) else error() }    //revisar
+Sent -> id {Sent2.idPos:=id.pos} Sent2 {Sent.tipo:=Sent2.tipo}
+Sent -> write Expr ; {if(Expr.tipo!=error) Sent.tipo := OK else error}
+Sent -> read id ; {if(id.existe) Sent.tipo:=OK else error()}               
+Sent -> {if!(Sent.funcBody) error() Sent2.tipo:=error} return ReturnExp ; {if(Sent.returnTipo==ReturnExp.tipo) Sent.tipo:=OK else error()}    
 
-Sent2 -> = Expr ;   { if(Expr.tipo==error) Sent2.tipo:=error else t:=BuscarTS(Sent2.idPos);if (t==Expr.tipo) Sent2.tipo:= OK else error() Sent2.tipo:=error}
-Sent2 -> *= Expr ;  { if(Expr.tipo==error) Sent2.tipo:=error else t:=BuscarTS(Sent2.idPos);if (t==Expr.tipo) Sent2.tipo:= OK else error() Sent2.tipo:=error}
-Sent2 -> ( {s:=BuscarTS(Sent2.idPos) if(s.tipo!=function)error() Sent2.tipo:=error else ParamList.numParams:=s.numParams; ParamList.tipoParams; ParamList.posActual;} ParamList ) ;    { Sent2.tipo := ParamList.tipo } //revisar
+Sent2 -> = Expr ; { if(Expr.tipo==error) Sent2.tipo:=error else t:=BuscarTS(Sent2.idPos);if(t==Expr.tipo) Sent2.tipo:=OK else error() Sent2.tipo:=error}
+Sent2 -> *= Expr ; { if(Expr.tipo==error) Sent2.tipo:=error else t:=BuscarTS(Sent2.idPos);if(t==Expr.tipo) Sent2.tipo:=OK else error() Sent2.tipo:=error}
+Sent2 -> ( {s:=BuscarTS(Sent2.idPos) if(s.tipo!=function)error() Sent2.tipo:=error else ParamList.numParams:=s.numParam;ParamList.posActual:=0;} ParamList ) ;    { Sent2.tipo:=ParamList.tipo } 
 
-ReturnExp -> Expr  { ReturnExp.tipo := Expr.tipo }      
-ReturnExp -> lambda     { ReturnExp.tipo := void }
+ReturnExp -> Expr {ReturnExp.tipo:=Expr.tipo}      
+ReturnExp -> lambda {ReturnExp.tipo:=void}
 }

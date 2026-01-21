@@ -1,18 +1,15 @@
-/* Ejemplo de Prueba... */
 
-let int int1;
-let string cadena;read cadena;
-let boolean logico1;let boolean logico2 ;
-let float llff11;
+let int num;
+let boolean a;
+let boolean b ;
+let float zz;
 int1 = 873;
 
-int2 = 378;
-if (logico1 && logico2) cadena = ' hello!';
 
-function string ff(string sss)
+function string prueba(string zz)
 {
-	global = 33;
-	logico1 =  logico2;
-	return sss;
-	if (logico1) sss = ff (cadena);
+	hola = 33;
+	a = b;
+	if (intNoDefinido) sss = prueba(cadena);
+    return zz;
 }

@@ -1,0 +1,154 @@
+NoTerminales = { ReturnExp Sent2 Sent ParamList2 ParamList FuncBody FuncParams2 FuncParams TipoFunc DecFunc Tipo FactorId Term2 Term3 Term AritExp2 AritExp ExpRel2 ExpRel Expr2 Expr WhileBody TipoDecl Decl P }
+
+Terminales = { ; = { } ( ) return read id write ,  function int float boolean void string intVal realVal stringVal true false - + == ! && != do while if let  *= lambda }
+
+Axioma = P
+
+Producciones = {
+ //// FIRST(P)={function,lambda,if, let do, id, write, read, return}
+//// FOLLOW(P)={}
+
+P -> Decl P  
+P -> DecFunc P
+P -> lambda
+
+//// 4 5 6 7
+//// FIRST(Decl)={if, let do, id, write, read, return}
+//// FOLLOW(Decl)={if, let do, id, write, read, }, function, return }
+Decl -> if ( Expr ) Sent
+Decl -> let TipoDecl id ;
+Decl -> do WhileBody
+Decl -> Sent 
+
+//// 8 9 
+//// FIRST(TipoDecl)={boolean,string,int,float,lambda}
+//// FOLLOW(TipoDecl)={id}
+TipoDecl -> Tipo
+TipoDecl -> lambda
+
+//// 10
+//// FIRST(WhileBody)={{}
+//// FOLLOW(WhileBody)={if, let do, id, write, read, }, function, return}
+WhileBody -> { FuncBody } while ( Expr ) ;
+
+//// 11
+//// FIRST(Expr)={!,+,-, intVal, realVal, id, stringVal, ( }
+//// FOLLOW(Expr)={ ) ; ! + - , }
+Expr -> ExpRel Expr2
+
+
+//// FIRST(Expr2)={&&,lambda}
+//// FOLLOW(Expr2)={ ) ; ! + - , }
+Expr2 ->  && ExpRel Expr2   ////12
+Expr2 -> lambda             ////13
+
+//// FIRST(ExpRel)={!,+, -, intVal, realVal, id, stringVal, ( }
+//// FOLLOW(ExpRel)={ && ) ; ! + - , }
+ExpRel -> AritExp ExpRel2   ////14
+
+//// FIRST(ExpRel2)={ ==, !=, lambda}
+//// FOLLOW(ExpRel2)={ && ) ; ! + - , }
+ExpRel2 -> == AritExp ExpRel2   ////15
+ExpRel2 -> != AritExp ExpRel2   ////16
+ExpRel2 -> lambda               ////17
+
+//// FIRST(AritExp)={!,+,-, intVal, realVal, id, stringVal, ( }
+//// FOLLOW(AritExp)={ == != && ) ; ! + - , }
+AritExp -> Term AritExp2        ////18
+
+//// revisar esta regla por el follow
+//// FIRST(AritExp2)={+,-,lambda}
+//// FOLLOW(AritExp2)={ == != && ) ; ! + - , }
+AritExp2 -> + Term AritExp2     ////19
+AritExp2 -> - Term AritExp2     ////20
+AritExp2 -> lambda              ////21
+
+//// FIRST(Term)={!,+,-, intVal, realVal, id, stringVal, ( }
+//// FOLLOW(Term)={+ - == != && ) ; ! + - , }
+Term -> ! Term3                 ////22
+Term -> + Term2                 ////23
+Term -> - Term2                 ////24
+Term -> Term2                   ////25
+
+//// FIRST(Term3)={true, false, intVal, realVal, id, stringVal, ( }
+//// FOLLOW(Term3)={+ - == != && ) ; ! + - , }
+Term3 -> true       ////26
+Term3 -> false      ////27
+Term3 -> Term2      ////28
+
+//// FIRST(Term2)={intVal, realVal, id, stringVal, ( }
+//// FOLLOW(Term2)={+ - == != && ) ; ! + - , }
+Term2 -> intVal     ////29
+Term2 -> realVal    ////30
+Term2 -> id FactorId    ////31
+Term2 -> stringVal      ////32
+Term2 -> ( Expr )       ////33
+ 
+//// FIRST(FactorId)={(, lambda}
+//// FOLLOW(FactorId)={ == != && ) ; ! + - , }
+FactorId -> ( ParamList )       ////34
+FactorId -> lambda      ////35
+
+
+//// FIRST(DecFunc)={function}
+//// FOLLOW(DecFunc)={function,if, let do, id, write, read, return}
+DecFunc -> function TipoFunc id ( FuncParams ) { FuncBody } ////36
+
+//// FIRST(TipoFunc)={void,int,float,boolean,string}
+//// FOLLOW(TipoFunc)={id}
+TipoFunc -> Tipo        ////37
+TipoFunc -> void        ////38
+
+//// FIRST(FuncParams)={void,int,float,boolean,string}
+/// FOLLOW(FuncParams)={)}
+FuncParams -> Tipo id FuncParams2       ////39
+FuncParams -> void              ////40
+
+//// FIRST(FuncParams2)={',', lambda}
+/// FOLLOW(FuncParams2)={)}
+FuncParams2 -> , Tipo id FuncParams2        ////41
+FuncParams2 -> lambda               ////42
+
+//// FIRST(Tipo)={int,float,boolean,string}
+//// FOLLOW(Tipo)={id}
+Tipo -> int             ////43
+Tipo -> float           ////44
+Tipo -> boolean         ////45
+Tipo -> string          ////46
+
+
+//// FIRST(FuncBody)={if, let do, id, write, read, return,lambda}
+//// FOLLOw(FuncBody)={}}
+FuncBody -> Decl FuncBody       ////47
+FuncBody -> lambda              ////48
+
+//// FIRST(ParamList)={ lambda ! + - intVal realVal id stringVal ( }
+//// FOLLOW(ParamList)={)}
+ParamList -> Expr ParamList2        ////49
+ParamList -> lambda                 ////50
+
+//// FIRST(ParamList2)={',', lambda}
+//// FOLLOW(ParamList2)={)}
+ParamList2 -> , Expr ParamList2         ////51
+ParamList2 -> lambda                ////52
+
+//// FIRST(Sent)={id, write, read, return}
+//// FOLLOW(Sent)={if, let do, id, write, read, }, function, return }
+Sent -> id Sent2                ////53
+Sent -> write Expr ;            ////54
+Sent -> read id ;               ////55
+Sent -> return ReturnExp ;      ////56
+
+
+////ARREGLAR FIRST
+//// FIRST(Sent2)={ =,*=, (}
+//// FOLLOW(Sent2)={if, let do, id, write, read, }, function, return }
+Sent2 -> = Expr ;           ////57
+Sent2 -> *= Expr ;          ////58
+Sent2 -> ( ParamList ) ;    ////59
+
+//// FIRST(ReturnExp)={lambda, !,+,-, intVal, realVal, id, stringVal, ( }
+//// FOLLOw(returnExp)={;}
+ReturnExp -> Expr       ////60
+ReturnExp -> lambda     ////61
+}

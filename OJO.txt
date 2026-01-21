@@ -1,7 +1,0 @@
-incorrecto1 saca mal los errores
-los int len real len saca mal
-
-- tabla sd simbolos cuando func
-- cuando Buscar TS, el id de q tabla es?
-- preguntar que pasa cuando return y luego cosas
-

@@ -1,0 +1,11 @@
+let int a; 
+let int b; 
+function string logico(int c, int d){
+    if (c==d)return 'correcto';
+    a=c;
+}
+		
+a= logico(a,b);
+
+
+

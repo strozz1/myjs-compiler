@@ -31,17 +31,17 @@ func main() {
 	}
 	defer file.Close()
 
-	tkFile, e := os.Create("output/tokens.txt")
+	tkFile, e := os.Create("tokens.txt")
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "Error creating token file: %v\n", e)
 	}
 	defer tkFile.Close()
-	stFile, e := os.Create("output/st.txt")
+	stFile, e := os.Create("st.txt")
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "Error creating simbol table file: %v\n", e)
 	}
 	defer stFile.Close()
-	parseFile, e := os.Create("output/parse.txt")
+	parseFile, e := os.Create("parse.txt")
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "Error creating parse file: %v\n", e)
 	}
@@ -59,14 +59,10 @@ func main() {
 
 	parse := parser.NewParser(lexer)
 	parse.Parse()
-	//for !lexer.EOF{
-	//	lexer.Lexical()
-	//}
 	lexer.STManager.Write(stFile)
 	lexer.WriteTokens(bufio.NewWriter(tkFile))
 
 	parse.Write(bufio.NewWriter(parseFile))
-	fmt.Println()
 	lexer.WriteErrors(os.Stderr)
 }
 

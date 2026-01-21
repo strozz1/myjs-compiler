@@ -1,36 +1,21 @@
-/* Ejemplo de Prueba... */
-
 let int int1;
-let string cadena;read cadena;
-let boolean logico1;let boolean logico2 ;
+let string cadena;
+read cadena;
+let boolean logico1;
+let boolean logico2 ;
 let float llff11;
-int1 = 000000378;
-llff11 = 000000000000000000000000000000000000.0000000000000000000000000000000000000000;
+int1 = 00378;
+llff11 = 34.34;
 int2 = int1;
 cadena = 'string';
 
-function  string ff(string ss)
+function  string a(string a)
 {
 	logico2 =  logico1;
-	if (logico2) cadena = ff (ss);
-	letglobal = 78;
+	if (logico2) cadena = b (a);
 	return cadena;
 }
 		
-function boolean l(float _1){return _1==llff11;}
-function string funciOn  (string logico2)
-{	let  int var;
-
-  do{
-	logico1 = int1 == int2;write(0.0);logico2='';
-  }while(logico1);
-
-  return logico2;
-}
-cadena = funciOn(ff(cadena));
-
-write cadena;
-
 cadena = funcion(cadena);
 
 

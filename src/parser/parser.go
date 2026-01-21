@@ -175,7 +175,9 @@ func (p *ParserExec) P(attr Attr) Attr {
 		p.rule(3)
 		return Attr{tipo: OK}
 	default:
-		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 3")
+		if(attr.tipo!=ERROR){
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 3")
+		}
 		return error()
 	}
 	t := p.lookahead.Kind
@@ -239,6 +241,9 @@ func (p *ParserExec) Decl(attr Attr) Attr {
 			return error()
 		}
 		tipoDecl := p.TipoDecl().tipo
+		if(tipoDecl==ERROR){
+			return error()
+		}
 		if p.lookahead.Kind != token.ID {
 			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 5")
 			return error()
@@ -310,6 +315,9 @@ func (p *ParserExec) WhileBody(attr Attr) Attr {
 		return error()
 	}
 	bodyAttr := p.FuncBody(attr)
+	if(bodyAttr.tipo==ERROR){
+		return bodyAttr
+	}
 	if p.lookahead.Kind != token.CERRAR_CORCH {
 		errors.SintacticalError(errors.S_EXPECTED_CERRAR_CORCH, nil) // 10")
 		return error()
@@ -492,7 +500,9 @@ func (p *ParserExec) ExpRel2(attr Attr) Attr {
 		p.rule(17)
 		return attr
 	default:
-		errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 17")
+		if(attr.tipo!=ERROR){
+			errors.SintacticalError(errors.S_EXPECTED_EXP, nil) // 17")
+		}
 		return error()
 	}
 }
@@ -1102,7 +1112,6 @@ func (p *ParserExec) ParamList2(attr Attr) Attr {
 		}
 
 		if attr.posActual+1 > attr.numParam {
-			fmt.Printf("%d vs %d\n",attr.posActual+1, attr.numParam)
 			errors.SemanticalError(errors.SS_NUM_PARAMS_INV, fmt.Sprintf(" Se esperaban %d parametros", attr.numParam))
 			return error()
 		}
@@ -1292,9 +1301,6 @@ func (p *ParserExec) Sent2(attr Attr) Attr {
 			attr.tipo = OK
 			return attr
 		} else {
-			fmt.Println(res.tipo.String())
-			fmt.Println(errors.Line())
-			fmt.Println(p.lookahead.Kind.String())
 			errors.SemanticalError(errors.SS_INVALID_EXP_TYPE, fmt.Sprintf("%s, se obtuvo %s", at.String(), res.tipo.String()))
 			return error()
 		}
